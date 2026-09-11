@@ -75,18 +75,8 @@ def pair_zones(z: pd.DataFrame) -> pd.DataFrame:
                 stack.append(r["time"])
             elif stack:
                 t0 = stack.pop()
-                out.append(
-                    dict(
-                        run_id=key[0],
-                        core_x=key[1],
-                        core_y=key[2],
-                        risc=key[3],
-                        zone=key[4],
-                        start=t0,
-                        end=r["time"],
-                        dur=r["time"] - t0,
-                    )
-                )
+                out.append(dict(run_id=key[0], core_x=key[1], core_y=key[2], risc=key[3], zone=key[4],
+                                start=t0, end=r["time"], dur=r["time"] - t0))
     return pd.DataFrame(out)
 
 
@@ -106,35 +96,21 @@ def reduce(path: Path):
         last = k[(k["type"] == "ZONE_END") & (k["time"] == t_max)].iloc[0]
         kpr = kp[kp["run_id"] == rid]
         t1 = kpr[kpr["risc"] == "TRISC_1"]["dur"]
-        rec = dict(
-            file=path.name,
-            run_idx=i,
-            run_id=rid,
-            wall_dev_cycles=int(t_max - t_min),
-            wall_core_x=int(last["core_x"]),
-            wall_core_y=int(last["core_y"]),
-            wall_core_risc=last["risc"],
-            n_cores=int(kpr.groupby(["core_x", "core_y"]).ngroups),
-            trisc1_mean=float(t1.mean()) if len(t1) else float("nan"),
-            trisc1_median=float(t1.median()) if len(t1) else float("nan"),
-            trisc1_max=float(t1.max()) if len(t1) else float("nan"),
-            kernel_start_skew=int(k[k["type"] == "ZONE_START"]["time"].max() - t_min),
-        )
+        rec = dict(file=path.name, run_idx=i, run_id=rid, wall_dev_cycles=int(t_max - t_min),
+                   wall_core_x=int(last["core_x"]), wall_core_y=int(last["core_y"]), wall_core_risc=last["risc"],
+                   n_cores=int(kpr.groupby(["core_x", "core_y"]).ngroups),
+                   trisc1_mean=float(t1.mean()) if len(t1) else float("nan"),
+                   trisc1_median=float(t1.median()) if len(t1) else float("nan"),
+                   trisc1_max=float(t1.max()) if len(t1) else float("nan"),
+                   kernel_start_skew=int(k[k["type"] == "ZONE_START"]["time"].max() - t_min))
         runs.append(rec)
         # per core/risc rows
         dd = d[d["run_id"] == rid] if len(d) else d
         for (cx, cy, risc), g in kpr.groupby(["core_x", "core_y", "risc"]):
-            row = dict(
-                run_idx=i,
-                run_id=rid,
-                core_x=cx,
-                core_y=cy,
-                risc=risc,
-                kernel_start=int(g["start"].iloc[0] - t_min),
-                kernel_end=int(g["end"].iloc[0] - t_min),
-                kernel_dur=int(g["dur"].iloc[0]),
-                is_wall_core=int(cx == rec["wall_core_x"] and cy == rec["wall_core_y"]),
-            )
+            row = dict(run_idx=i, run_id=rid, core_x=cx, core_y=cy, risc=risc,
+                       kernel_start=int(g["start"].iloc[0] - t_min), kernel_end=int(g["end"].iloc[0] - t_min),
+                       kernel_dur=int(g["dur"].iloc[0]),
+                       is_wall_core=int(cx == rec["wall_core_x"] and cy == rec["wall_core_y"]))
             if len(dd):
                 sub = dd[(dd["core_x"] == cx) & (dd["core_y"] == cy) & (dd["risc"] == risc)]
                 for _, r in sub.iterrows():

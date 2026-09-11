@@ -33,9 +33,7 @@ def test_zone_sweep(device):
     exp_approx = os.environ.get("SDPA_EXP_APPROX", "1") == "1"
     dmap = {"bfp8_b": ttnn.bfloat8_b, "bfloat16": ttnn.bfloat16}
     dtype = dmap[os.environ.get("SDPA_DTYPE", "bfp8_b")]
-    kv_dtype = dmap[
-        os.environ.get("SDPA_KV_DTYPE", os.environ.get("SDPA_DTYPE", "bfp8_b"))
-    ]  # K/V dtype override (DRAM-law runs)
+    kv_dtype = dmap[os.environ.get("SDPA_KV_DTYPE", os.environ.get("SDPA_DTYPE", "bfp8_b"))]  # K/V dtype override (DRAM-law runs)
     fidelity = {
         "LoFi": ttnn.MathFidelity.LoFi,
         "HiFi2": ttnn.MathFidelity.HiFi2,
@@ -58,18 +56,11 @@ def test_zone_sweep(device):
         k_chunk_size=kc,
         exp_approx_mode=exp_approx,
     )
-    fp32_acc = os.environ.get("SDPA_FP32_ACC", "0") == "1"  # True selects the non-streaming compute_common.hpp path
-    packer_l1_acc = os.environ.get("SDPA_PACKER_L1_ACC", "0") == "1"
-    math_approx = os.environ.get("SDPA_MATH_APPROX", "1") == "1"
     compute_kernel_config = ttnn.WormholeComputeKernelConfig(
         math_fidelity=fidelity,
-        math_approx_mode=math_approx,
-        fp32_dest_acc_en=fp32_acc,
-        packer_l1_acc=packer_l1_acc,
-    )
-    print(
-        f"[zone_sweep] fp32_dest_acc_en={fp32_acc} packer_l1_acc={packer_l1_acc} math_approx_mode={math_approx}",
-        flush=True,
+        math_approx_mode=True,
+        fp32_dest_acc_en=False,
+        packer_l1_acc=False,
     )
     Q = fa_rand(1, nh, s, d)
     K = fa_rand(1, nkv, s, d)
@@ -81,12 +72,7 @@ def test_zone_sweep(device):
     tt_V = ttnn.from_torch(V, **kwkv)
     for it in range(iters):
         tt_back = ttnn.transformer.scaled_dot_product_attention(
-            tt_Q,
-            tt_K,
-            tt_V,
-            is_causal=causal,
-            program_config=program_config,
-            compute_kernel_config=compute_kernel_config,
+            tt_Q, tt_K, tt_V, is_causal=causal, program_config=program_config, compute_kernel_config=compute_kernel_config
         )
         ttnn.synchronize_device(device)
         _ = tt_back.shape
