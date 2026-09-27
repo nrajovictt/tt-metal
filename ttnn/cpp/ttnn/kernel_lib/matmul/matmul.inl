@@ -193,6 +193,14 @@ ALWI MatmulResult<WithBias> matmul(
             DataflowBuffer& dst_buf = last_out ? out_buf : interm_buf;
             const uint32_t dst_cb_id = dst_buf.get_id();
 
+#ifdef ARCH_QUASAR
+            // The final K block can switch from partials to output; format
+            // reconfiguration alone does not update Quasar's pack descriptor.
+            if (last_out && dst_cb_id != interm_cb_id) {
+                pack_init(dst_cb_id);
+            }
+#endif
+
             if constexpr (PackerL1Acc) {
                 PACK((pack_reconfig_data_format(dst_cb_id)));
                 PACK((llk_pack_reconfig_l1_acc(block != 0 && !enable_reload)));
@@ -302,6 +310,10 @@ ALWI MatmulResult<WithBias> matmul(
                 if (!keep_partials) {
                     for (uint32_t off = 0; off < out_block_num_tiles; off += out_subblock_num_tiles) {
                         interm_buf.wait_front(out_subblock_num_tiles);
+#ifdef ARCH_QUASAR
+                        // Order a bare partials drain without consuming accumulator data.
+                        dummy_unpack(interm_cb_id);
+#endif
                         interm_buf.pop_front(out_subblock_num_tiles);
                     }
                 }
@@ -325,6 +337,11 @@ ALWI MatmulResult<WithBias> matmul(
         reconfig_data_format_srca(interm_cb_id);
         reconfig_data_format_srcb(bias.cb_id);
         pack_reconfig_data_format(out_cb_id);
+#ifdef ARCH_QUASAR
+        if (out_cb_id != interm_cb_id) {
+            pack_init(out_cb_id);
+        }
+#endif
         if constexpr (Activation::pack_relu) {
             pack_relu_config(ReluConfig::zero());
         }

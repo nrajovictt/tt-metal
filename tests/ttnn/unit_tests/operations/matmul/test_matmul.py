@@ -17,7 +17,6 @@ from models.common.utility_functions import (
 from tests.ttnn.utils_for_testing import assert_with_pcc, assert_numeric_metrics, assert_equal
 from ttnn.operations.activations import get_golden_function_for_activation
 
-
 # for setting up multi-device stress tests
 NUM_DEVICES_ENV_KEY = "USE_NUM_DEVICES"
 NUM_DEVICES = ttnn.distributed.get_num_pcie_devices() if os.environ.get(NUM_DEVICES_ENV_KEY, None) is not None else 1
@@ -4776,6 +4775,52 @@ def test_matmul_fp32_crossblock_reload_precision(device, factory, packer_l1_acc,
     )
 
 
+@pytest.mark.parametrize("packer_l1_acc", [False, True])
+@pytest.mark.parametrize("activation", ["relu", "relu6"])
+@pytest.mark.parametrize("has_bias", [False, True])
+def test_matmul_untilize_fused_activation(device, packer_l1_acc, activation, has_bias):
+    """The final matmul sum must be activated before its tiles are reblocked and untilized."""
+    torch.manual_seed(0)
+    a = torch.randn((64, 128), dtype=torch.bfloat16)
+    b = torch.randn((128, 64), dtype=torch.bfloat16)
+    expected = a @ b
+    bias = torch.randn((1, 64), dtype=torch.bfloat16) if has_bias else None
+    if has_bias:
+        expected += bias
+    if activation == "relu":
+        expected = expected.relu()
+        unary_op = ttnn.UnaryOpType.RELU
+    else:
+        expected = expected.clamp(0, 6)
+        unary_op = ttnn.UnaryOpType.RELU6
+
+    program_config = ttnn.MatmulMultiCoreReuseMultiCast1DProgramConfig(
+        compute_with_storage_grid_size=ttnn.CoreCoord(1, 1),
+        in0_block_w=1,
+        out_subblock_h=2,
+        out_subblock_w=2,
+        per_core_M=2,
+        per_core_N=2,
+        fuse_batch=True,
+        fused_activation=ttnn.UnaryWithParam(unary_op),
+        mcast_in0=True,
+        untilize_out=True,
+    )
+    compute_kernel_config = ttnn.WormholeComputeKernelConfig(
+        math_fidelity=ttnn.MathFidelity.HiFi4,
+        math_approx_mode=False,
+        fp32_dest_acc_en=False,
+        packer_l1_acc=packer_l1_acc,
+    )
+    a_t = ttnn.from_torch(a, layout=ttnn.TILE_LAYOUT, device=device, dtype=ttnn.bfloat16)
+    b_t = ttnn.from_torch(b, layout=ttnn.TILE_LAYOUT, device=device, dtype=ttnn.bfloat16)
+    bias_t = ttnn.from_torch(bias, layout=ttnn.TILE_LAYOUT, device=device, dtype=ttnn.bfloat16) if has_bias else None
+    actual = ttnn.to_torch(
+        ttnn.linear(a_t, b_t, bias=bias_t, program_config=program_config, compute_kernel_config=compute_kernel_config)
+    )
+    torch.testing.assert_close(actual, expected, rtol=0.05, atol=0.5)
+
+
 @pytest.mark.xfail(
     reason=("Fused matmul untilize_out loses fp32 precision. Issue #49836"),
     strict=True,
@@ -4837,3 +4882,29 @@ def test_matmul_fp32_crossblock_reload_untilize_precision(device, packer_l1_acc)
         check_frobenius=True,
         check_ulp=False,
     )
+
+
+@pytest.mark.parametrize("out_subblock_h, out_subblock_w", [(1, 2), (2, 4), (2, 2)])
+def test_matmul_reuse_sharded_output_subblock_layout(device, expect_error, out_subblock_h, out_subblock_w):
+    torch.manual_seed(0)
+    a = torch.randint(-2, 3, (1, 1, 128, 128)).to(torch.bfloat16)
+    b = torch.eye(128, dtype=torch.bfloat16).reshape(1, 1, 128, 128)
+    memory_config = ttnn.create_sharded_memory_config(
+        a.shape, core_grid=ttnn.CoreGrid(x=1, y=1), strategy=ttnn.ShardStrategy.HEIGHT
+    )
+    a_tt = ttnn.from_torch(a, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=memory_config)
+    b_tt = ttnn.from_torch(b, dtype=ttnn.bfloat16, layout=ttnn.TILE_LAYOUT, device=device, memory_config=memory_config)
+    config = ttnn.MatmulMultiCoreReuseProgramConfig(
+        compute_with_storage_grid_size=(1, 1),
+        in0_block_w=4,
+        out_subblock_h=out_subblock_h,
+        out_subblock_w=out_subblock_w,
+        per_core_M=4,
+        per_core_N=4,
+    )
+    if out_subblock_h > 1 and out_subblock_w != 4:
+        with expect_error(RuntimeError, r"Either out_subblock_w.*must equal per_core_N"):
+            ttnn.matmul(a_tt, b_tt, program_config=config, memory_config=memory_config)
+    else:
+        result = ttnn.matmul(a_tt, b_tt, program_config=config, memory_config=memory_config)
+        torch.testing.assert_close(ttnn.to_torch(result), a, rtol=0, atol=0)
