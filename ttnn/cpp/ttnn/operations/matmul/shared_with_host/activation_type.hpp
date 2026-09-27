@@ -22,4 +22,6 @@ enum class KernelActivation : uint32_t {
     SOFTPLUS
 };
 
+enum class ActivationThread : uint32_t { Math, Pack };
+
 }  // namespace ttnn::operations::matmul
