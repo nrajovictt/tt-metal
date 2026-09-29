@@ -41,12 +41,6 @@ template <
 FORCE_INLINE void MatmulActivation<Act, Param0, Param1, Param2, PackRelu, Thread>::init() {
     if constexpr (Act != KernelActivation::NONE) {
         ActivationInitHelper<Act, Param0, Param1, Thread>::init();
-    } else if constexpr (Thread == ActivationThread::Math) {
-#ifdef SFPU_OP_INIT_ACTIVATION
-        SFPU_OP_INIT_ACTIVATION
-#else
-        static_assert(Thread != ActivationThread::Math, "Math activation requires SFPU_OP_INIT_ACTIVATION");
-#endif
     }
 }
 
@@ -58,19 +52,9 @@ template <
     bool PackRelu,
     ActivationThread Thread>
 FORCE_INLINE void MatmulActivation<Act, Param0, Param1, Param2, PackRelu, Thread>::before_commit(uint32_t num_tiles) {
-    if constexpr (Thread == ActivationThread::Math) {
-        if constexpr (Act != KernelActivation::NONE) {
-            for (uint32_t i = 0; i < num_tiles; ++i) {
-                detail::ActivationApplyHelper<Act, Param0, Param1, Param2, ActivationThread::Math>::apply(i);
-            }
-        } else {
-#ifdef SFPU_OP_FUNC_ACTIVATION
-            for (uint32_t i = 0; i < num_tiles; ++i) {
-                SFPU_OP_FUNC_ACTIVATION
-            }
-#else
-            static_assert(Thread != ActivationThread::Math, "Math activation requires SFPU_OP_FUNC_ACTIVATION");
-#endif
+    if constexpr (Thread == ActivationThread::Math && Act != KernelActivation::NONE) {
+        for (uint32_t i = 0; i < num_tiles; ++i) {
+            detail::ActivationApplyHelper<Act, Param0, Param1, Param2, Thread>::apply(i);
         }
     }
 }

@@ -6,7 +6,6 @@
 
 #include "internal/mod_div_lib.h"
 #include "api/compute/bcast.h"
-#include "api/compute/eltwise_unary/sfpu_split_includes.h"
 #include "api/compute/matmul.h"
 #include "ttnn/cpp/ttnn/kernel_lib/matmul/matmul.hpp"
 #include "ttnn/cpp/ttnn/kernel_lib/matmul/reblock_untilize_helpers.hpp"
@@ -207,8 +206,9 @@ void kernel_main() {
     constexpr uint32_t tilized_cb_second_reader_offset = get_compile_time_arg_val(36);
     constexpr bool split_reader_cb_shared = get_compile_time_arg_val(37) == 1;
     constexpr auto activation_type = static_cast<KernelActivation>(get_compile_time_arg_val(38));
-    constexpr auto activation_thread = static_cast<ActivationThread>(get_compile_time_arg_val(39));
-    constexpr uint32_t activation_param0 = get_compile_time_arg_val(40);
+    constexpr uint32_t activation_param0 = get_compile_time_arg_val(39);
+    constexpr uint32_t activation_param1 = get_compile_time_arg_val(40);
+    constexpr uint32_t activation_param2 = get_compile_time_arg_val(41);
 
     constexpr uint32_t out_block_w = in1_block_w;
 
@@ -249,8 +249,8 @@ void kernel_main() {
 
     compute_kernel_hw_startup<SrcOrder::Reverse>(mm_in0_cb_id, in1_cb_id, out_cb_id);
     matmul_block_init(mm_in0_cb_id, in1_cb_id, false, out_subblock_w, out_subblock_h, in0_block_w);
-    using ConvActivation =
-        compute_kernel_lib::MatmulActivation<activation_type, activation_param0, 0, 0, pack_relu, activation_thread>;
+    using ConvActivation = compute_kernel_lib::
+        MatmulActivation<activation_type, activation_param0, activation_param1, activation_param2, pack_relu>;
     ConvActivation::init();
     auto prepare_k_block = [&](uint32_t k, uint32_t, bool) {
         if constexpr (!height_sharded) {
@@ -320,10 +320,6 @@ void kernel_main() {
     // in1 num blocks w is the outer loop. Output blocks are computed in col major order.
     for (uint32_t in1_block_w_i = 0; in1_block_w_i < in1_num_blocks_w; ++in1_block_w_i) {
         for (uint32_t in0_block_h_i = 0; in0_block_h_i < in0_num_blocks_h; ++in0_block_h_i) {
-            if constexpr (pack_relu) {
-                // for each output block we start we relu disabled so that intermediate results are not relu'd
-                pack_relu_config(ReluConfig::none());
-            }
             if constexpr (check_skip_compute) {
                 if (skip_compute) {
                     for (uint32_t k = 0; k < in0_num_blocks_w; ++k) {
@@ -359,10 +355,6 @@ void kernel_main() {
             if constexpr (untilize_out) {
                 if constexpr (packer_l1_acc) {
                     pack_reconfig_data_format(matmul_partials_cb, out_cb_id);
-                    pack_reconfig_l1_acc(0);
-                }
-                if constexpr (pack_relu) {
-                    pack_relu_config(ReluConfig::none());
                 }
                 result.prepare_untilize_input();
 

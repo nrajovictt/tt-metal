@@ -4776,23 +4776,39 @@ def test_matmul_fp32_crossblock_reload_precision(device, factory, packer_l1_acc,
 
 
 @pytest.mark.parametrize("packer_l1_acc", [False, True])
-@pytest.mark.parametrize("activation", ["relu", "relu6"])
+@pytest.mark.parametrize("activation", ["relu", "relu6", "gelu", "gelu_fast", "mish", "sqrt"])
 @pytest.mark.parametrize("has_bias", [False, True])
 def test_matmul_untilize_fused_activation(device, packer_l1_acc, activation, has_bias):
     """The final matmul sum must be activated before its tiles are reblocked and untilized."""
     torch.manual_seed(0)
     a = torch.randn((64, 128), dtype=torch.bfloat16)
     b = torch.randn((128, 64), dtype=torch.bfloat16)
-    expected = a @ b
     bias = torch.randn((1, 64), dtype=torch.bfloat16) if has_bias else None
+    if activation == "sqrt":
+        a, b = a.abs(), b.abs()
+        bias = bias.abs() if bias is not None else None
+    expected = a @ b
     if has_bias:
         expected += bias
     if activation == "relu":
         expected = expected.relu()
-        unary_op = ttnn.UnaryOpType.RELU
-    else:
+        unary_op = ttnn.UnaryWithParam(ttnn.UnaryOpType.RELU)
+    elif activation == "relu6":
         expected = expected.clamp(0, 6)
-        unary_op = ttnn.UnaryOpType.RELU6
+        unary_op = ttnn.UnaryWithParam(ttnn.UnaryOpType.RELU6)
+    elif activation in ("gelu", "gelu_fast"):
+        expected = torch.nn.functional.gelu(expected, approximate="tanh" if activation == "gelu_fast" else "none")
+        unary_op = (
+            ttnn.UnaryWithParam(ttnn.UnaryOpType.GELU, 1.0)
+            if activation == "gelu_fast"
+            else ttnn.UnaryWithParam(ttnn.UnaryOpType.GELU)
+        )
+    elif activation == "mish":
+        expected = torch.nn.functional.mish(expected)
+        unary_op = ttnn.UnaryWithParam(ttnn.UnaryOpType.MISH, 0.0)
+    else:
+        expected = expected.sqrt()
+        unary_op = ttnn.UnaryWithParam(ttnn.UnaryOpType.SQRT)
 
     program_config = ttnn.MatmulMultiCoreReuseMultiCast1DProgramConfig(
         compute_with_storage_grid_size=ttnn.CoreCoord(1, 1),
@@ -4802,7 +4818,7 @@ def test_matmul_untilize_fused_activation(device, packer_l1_acc, activation, has
         per_core_M=2,
         per_core_N=2,
         fuse_batch=True,
-        fused_activation=ttnn.UnaryWithParam(unary_op),
+        fused_activation=unary_op,
         mcast_in0=True,
         untilize_out=True,
     )

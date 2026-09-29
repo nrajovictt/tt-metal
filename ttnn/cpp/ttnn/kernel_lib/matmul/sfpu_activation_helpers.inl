@@ -10,6 +10,11 @@
 #include "api/compute/eltwise_unary/hardtanh.h"
 #include "api/compute/eltwise_unary/selu.h"
 #include "api/compute/eltwise_unary/softplus.h"
+#include "api/compute/eltwise_unary/mish.h"
+#include "api/compute/eltwise_unary/sqrt.h"
+#include "api/compute/eltwise_unary/elu.h"
+#include "api/compute/eltwise_unary/exp.h"
+#include "api/compute/eltwise_unary/recip.h"
 
 namespace compute_kernel_lib {
 
@@ -20,7 +25,9 @@ inline constexpr bool is_supported_activation =
     Act == KernelActivation::NONE || Act == KernelActivation::SILU || Act == KernelActivation::TANH ||
     Act == KernelActivation::GELU || Act == KernelActivation::GELU_TANH || Act == KernelActivation::RELU6 ||
     Act == KernelActivation::SIGMOID || Act == KernelActivation::HARDSIGMOID || Act == KernelActivation::HARDTANH ||
-    Act == KernelActivation::SELU || Act == KernelActivation::SOFTPLUS;
+    Act == KernelActivation::SELU || Act == KernelActivation::SOFTPLUS || Act == KernelActivation::MISH ||
+    Act == KernelActivation::SQRT || Act == KernelActivation::LEAKY_RELU || Act == KernelActivation::ELU ||
+    Act == KernelActivation::EXP || Act == KernelActivation::RECIP;
 
 }  // namespace detail
 
@@ -28,7 +35,33 @@ template <KernelActivation Act, uint32_t Param0, uint32_t Param1, ActivationThre
 FORCE_INLINE void ActivationInitHelper<Act, Param0, Param1, Thread>::init() {
     static_assert(detail::is_supported_activation<Act>, "Unsupported KernelActivation type for fused activation init");
 
-    if constexpr (Act == KernelActivation::SILU) {
+    if constexpr (Act == KernelActivation::MISH) {
+        static_assert(Thread == ActivationThread::Math, "MISH requires the math thread");
+        mish_tile_init<Param0 != 0>();
+    } else if constexpr (Act == KernelActivation::SQRT) {
+        static_assert(Thread == ActivationThread::Math, "SQRT requires the math thread");
+        sqrt_tile_init();
+    } else if constexpr (Act == KernelActivation::LEAKY_RELU) {
+        static_assert(Thread == ActivationThread::Math, "LEAKY_RELU requires the math thread");
+#ifndef ARCH_QUASAR
+        leaky_relu_tile_init();
+#else
+        static_assert(Act != KernelActivation::LEAKY_RELU, "LEAKY_RELU is unavailable on Quasar");
+#endif
+    } else if constexpr (Act == KernelActivation::ELU) {
+        static_assert(Thread == ActivationThread::Math, "ELU requires the math thread");
+#ifndef ARCH_QUASAR
+        elu_tile_init();
+#else
+        static_assert(Act != KernelActivation::ELU, "ELU is unavailable on Quasar");
+#endif
+    } else if constexpr (Act == KernelActivation::EXP) {
+        static_assert(Thread == ActivationThread::Math, "EXP requires the math thread");
+        exp_tile_init<Param0 != 0>();
+    } else if constexpr (Act == KernelActivation::RECIP) {
+        static_assert(Thread == ActivationThread::Math, "RECIP requires the math thread");
+        recip_tile_init();
+    } else if constexpr (Act == KernelActivation::SILU) {
         if constexpr (Thread == ActivationThread::Math) {
             silu_tile_init();
         } else {
@@ -98,7 +131,7 @@ template <
     uint32_t Param0 = 0,
     uint32_t Param1 = 0,
     uint32_t Param2 = 0,
-    ActivationThread Thread = ActivationThread::Pack>
+    ActivationThread Thread = activation_thread<Act>>
 struct ActivationApplyHelper {
     static_assert(detail::is_supported_activation<Act>, "Unsupported KernelActivation type for fused activation apply");
 
@@ -107,7 +140,33 @@ struct ActivationApplyHelper {
         "SOFTPLUS Param0 (beta) must be non-zero to avoid division by zero");
 
     FORCE_INLINE static void apply(uint32_t tile_index) {
-        if constexpr (Act == KernelActivation::SILU) {
+        if constexpr (Act == KernelActivation::MISH) {
+            static_assert(Thread == ActivationThread::Math, "MISH requires the math thread");
+            mish_tile<Param0 != 0>(tile_index);
+        } else if constexpr (Act == KernelActivation::SQRT) {
+            static_assert(Thread == ActivationThread::Math, "SQRT requires the math thread");
+            sqrt_tile<Param0 != 0>(tile_index);
+        } else if constexpr (Act == KernelActivation::LEAKY_RELU) {
+            static_assert(Thread == ActivationThread::Math, "LEAKY_RELU requires the math thread");
+#ifndef ARCH_QUASAR
+            leaky_relu_tile(tile_index, Param0);
+#else
+            static_assert(Act != KernelActivation::LEAKY_RELU, "LEAKY_RELU is unavailable on Quasar");
+#endif
+        } else if constexpr (Act == KernelActivation::ELU) {
+            static_assert(Thread == ActivationThread::Math, "ELU requires the math thread");
+#ifndef ARCH_QUASAR
+            elu_tile(tile_index, Param0);
+#else
+            static_assert(Act != KernelActivation::ELU, "ELU is unavailable on Quasar");
+#endif
+        } else if constexpr (Act == KernelActivation::EXP) {
+            static_assert(Thread == ActivationThread::Math, "EXP requires the math thread");
+            exp_tile<Param0 != 0>(tile_index);
+        } else if constexpr (Act == KernelActivation::RECIP) {
+            static_assert(Thread == ActivationThread::Math, "RECIP requires the math thread");
+            recip_tile(tile_index);
+        } else if constexpr (Act == KernelActivation::SILU) {
             if constexpr (Thread == ActivationThread::Math) {
                 silu_tile(tile_index);
             } else {
@@ -139,7 +198,7 @@ struct ActivationApplyHelper {
                 relu_max_tile_pack(tile_index, max);
             }
         } else if constexpr (Act == KernelActivation::SIGMOID) {
-            constexpr int vec_mode = (Param0 == 1) ? VectorMode::R : (Param0 == 2) ? VectorMode::C : VectorMode::RC;
+            constexpr VectorMode vec_mode = (Param0 == 1) ? VectorMode::R : (Param0 == 2) ? VectorMode::C : VectorMode::RC;
             if constexpr (Thread == ActivationThread::Math) {
                 sigmoid_tile<vec_mode, Param1 != 0>(tile_index);
             } else {
@@ -186,7 +245,7 @@ FORCE_INLINE void apply_activation_from_pack(uint32_t out_subblock_num_tiles) {
     PACK(TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, ckernel::packer::get_packer_dest_offset()));
 
     for (uint32_t i = 0; i < out_subblock_num_tiles; i++) {
-        detail::ActivationApplyHelper<Act, Param0, Param1, Param2>::apply(i);
+        detail::ActivationApplyHelper<Act, Param0, Param1, Param2, ActivationThread::Pack>::apply(i);
     }
 
     // Wait for SFPU completion before packing.

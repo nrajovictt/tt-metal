@@ -20,7 +20,7 @@ def _tiles(matrix):
 @pytest.mark.parametrize("l1_acc", [False, True], ids=["software", "l1-acc"])
 @pytest.mark.parametrize(
     "post_op",
-    [0, 1, 2, 3, 4, 7, 8, 9, 10],
+    [0, 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13],
     ids=[
         "plain",
         "bias",
@@ -31,6 +31,9 @@ def _tiles(matrix):
         "gelu-tanh",
         "column-indexed-bias",
         "full-block-bias",
+        "mish",
+        "bias-mish",
+        "sqrt",
     ],
 )
 @pytest.mark.parametrize("static_shape", [False, True], ids=["runtime-shape", "static-shape"])
@@ -46,6 +49,8 @@ def test_matmul_helpers(
     for k in range(k_blocks):
         for n in range(4 * output_blocks):
             b[k * 32 : (k + 1) * 32, n * 32 : (n + 1) * 32] = torch.eye(32) * (1 if (k + n) % 2 else -1)
+    if post_op == 13:
+        a, b = a.abs(), b.abs()
     expected = a @ b
     if post_op == 10:
         assert output_blocks == 1  # Full-block bias uses the matmul block's N stride.
@@ -55,7 +60,7 @@ def test_matmul_helpers(
     else:
         bias = torch.zeros(32, width)
         bias[0] = torch.arange(width) % 5 - 2
-    if post_op in (1, 4, 7):
+    if post_op in (1, 4, 7, 12):
         expected += bias[0]
     elif post_op == 9:
         expected += bias.repeat(4, 1)
@@ -67,6 +72,10 @@ def test_matmul_helpers(
         expected = expected.clamp(0, 6)
     elif post_op == 8:
         expected = torch.nn.functional.gelu(expected, approximate="tanh")
+    elif post_op in (11, 12):
+        expected = torch.nn.functional.mish(expected)
+    elif post_op == 13:
+        expected = expected.sqrt()
 
     core = ttnn.CoreCoord(0, 0)
     cores = ttnn.CoreRangeSet([ttnn.CoreRange(core, core)])
@@ -152,7 +161,7 @@ def test_matmul_helpers(
         for c in range(bc, bc + 2)
     ]
     expected_tiles = expected_tiles[order]
-    if post_op == 8:
+    if post_op in (8, 11, 12, 13):
         torch.testing.assert_close(actual_tiles, expected_tiles, rtol=0.03, atol=0.125)
     else:
         torch.testing.assert_close(actual_tiles, expected_tiles, rtol=0, atol=0)

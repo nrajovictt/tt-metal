@@ -22,18 +22,18 @@ enum class DataFormatReconfig : uint8_t { InputAndOutput, None };
 }  // namespace matmul_config
 
 // Matmul owns activation ordering, including the optional post-matmul bias pass.
-// Act == NONE with Thread == Math uses the SFPU_OP_*_ACTIVATION macros.
+// Thread selection defaults to the activation helper's compile-time policy.
 template <
     KernelActivation Act = KernelActivation::NONE,
     uint32_t Param0 = 0,
     uint32_t Param1 = 0,
     uint32_t Param2 = 0,
     bool PackRelu = false,
-    ActivationThread Thread = ActivationThread::Pack>
+    ActivationThread Thread = activation_thread<Act>>
 struct MatmulActivation {
     static_assert(!PackRelu || Thread == ActivationThread::Pack, "Packer ReLU must run on the packer thread");
     static constexpr bool pack_relu = PackRelu;
-    static constexpr bool enabled = PackRelu || Thread == ActivationThread::Math || Act != KernelActivation::NONE;
+    static constexpr bool enabled = PackRelu || Act != KernelActivation::NONE;
 
     // Call once after compute startup. Math activation runs before DST commit;
     // packer activation replaces tile_regs_wait after commit.

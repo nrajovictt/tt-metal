@@ -916,7 +916,6 @@ tt::tt_metal::ProgramDescriptor build_program_descriptor_sharded(
     }
     auto activation_config = compute_kernel_lib::get_activation_kernel_config(fused_activation);
     bool pack_relu = activation_config.pack_relu;
-    compute_defines.merge(activation_config.defines);
     if (enable_split_reader) {
         compute_defines["SPLIT_READER"] = "1";
         reader_defines["SPLIT_READER"] = "1";
@@ -1141,9 +1140,10 @@ tt::tt_metal::ProgramDescriptor build_program_descriptor_sharded(
                 compute_kernel_args.end(), activation_reuse_dummy_args.begin(), activation_reuse_dummy_args.end());
         }
         compute_kernel_args.push_back(static_cast<uint32_t>(split_reader_cb_shared));
-        compute_kernel_args.push_back(static_cast<uint32_t>(activation_config.activation));
-        compute_kernel_args.push_back(static_cast<uint32_t>(activation_config.thread));
+        compute_kernel_args.push_back(static_cast<uint32_t>(activation_config.type));
         compute_kernel_args.push_back(activation_config.param0);
+        compute_kernel_args.push_back(activation_config.param1);
+        compute_kernel_args.push_back(activation_config.param2);
     }
 
     const tt::tt_metal::NOC writer_mcast_noc = tt::tt_metal::detail::preferred_noc_for_dram_read(device->arch());

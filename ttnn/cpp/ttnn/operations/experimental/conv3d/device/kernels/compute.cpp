@@ -420,7 +420,6 @@ void kernel_main() {
     constexpr uint32_t weight_tiles = matmul_K_t * matmul_N_t;
     constexpr uint32_t output_tiles = matmul_M_t * matmul_N_t;
     constexpr uint32_t batch_tiles = subblock_h * matmul_K_t;
-    constexpr uint32_t subblock_tiles = subblock_h * matmul_N_t;
 
     CircularBuffer cb_vol2col_tiled_cb(cb_vol2col_tiled);
     CircularBuffer cb_weight_tiled_cb(cb_weight_tiled);
@@ -531,7 +530,6 @@ void kernel_main() {
                                             false /* transpose */);
                                         cb_x_hi_tiled_cb.pop_front(batch_tiles);
                                         cb_x_lo_tiled_cb.pop_front(batch_tiles);
-
                                     } else {
                                         reconfig_data_format(cb_weight_tiled, cb_vol2col_tiled);
                                         compute_kernel_lib::matmul<
@@ -544,52 +542,28 @@ void kernel_main() {
                                             cb_weight_tiled,
                                             cb_matmul_interm_tiled,
                                             cb_matmul_interm_tiled,
-                                            compute_kernel_lib::MatmulShape::of(
+                                            compute_kernel_lib::StaticMatmulShape<
                                                 in0_num_subblocks,
                                                 in1_num_subblocks,
                                                 subblock_h,
                                                 subblock_w,
                                                 in0_block_w,
-                                                /*num_k_blocks=*/1));
+                                                /*NumKBlocks=*/1>{});
                                         cb_vol2col_tiled_cb.pop_front(batch_tiles);
                                     }
 
                                     if constexpr (enable_streaming_output) {
                                         // Streaming emits subblocks before cb_matmul_interm_tiled is physically full,
                                         // so bias uses math add and untilizes immediately.
-                                        cb_matmul_interm_tiled_cb.wait_front(subblock_tiles);
-
-                                        if constexpr (use_bias) {
-                                            if constexpr (use_fp32_exact) {
-                                                reconfig_data_format(cb_matmul_interm_tiled, cb_bias_tiled);
-                                                add_bias_inplace_sfpu<subblock_h, matmul_N_t>(
-                                                    cb_matmul_interm_tiled, cb_bias_tiled);
-                                            } else {
-                                                if constexpr (use_fp32_partials) {
-                                                    reconfig_data_format(cb_matmul_interm_tiled, cb_bias_tiled);
-                                                }
-                                                add_bias_inplace<
-                                                    subblock_h,
-                                                    matmul_N_t,
-                                                    compute_kernel_lib::DEST_AUTO_LIMIT>(
-                                                    cb_matmul_interm_tiled, cb_bias_tiled);
-                                            }
-                                        }
-
-                                        constexpr auto untilize_reconfig_mode_sb =
-                                            use_fp32_exact ? compute_kernel_lib::untilize_config::
-                                                                 ReconfigureRegisterDatatypeMode::UnpackReconfigure
-                                                           : compute_kernel_lib::untilize_config::
-                                                                 ReconfigureRegisterDatatypeMode::NoReconfigure;
-                                        compute_kernel_lib::untilize<
+                                        bias_untilize_fullblock_math<
+                                            subblock_h,
                                             matmul_N_t,
+                                            use_fp32_partials,
+                                            use_fp32_exact,
+                                            use_bias,
                                             cb_matmul_interm_tiled,
-                                            cb_matmul_result_rm,
-                                            compute_kernel_lib::untilize_config::InitUninitMode::InitAndUninit,
-                                            compute_kernel_lib::untilize_config::WaitMode::WaitUpfront,
-                                            untilize_reconfig_mode_sb,
-                                            compute_kernel_lib::untilize_config::RemapMode::AssumeConfigured>(
-                                            subblock_h);
+                                            cb_bias_tiled,
+                                            cb_matmul_result_rm>();
                                     }
                                 }
                             }

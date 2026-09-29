@@ -411,7 +411,6 @@ tt::tt_metal::ProgramDescriptor build_program_descriptor(
 
     auto activation_config = compute_kernel_lib::get_activation_kernel_config(fused_activation);
     bool pack_relu = activation_config.pack_relu;
-    compute_defines.merge(activation_config.defines);
 
     ttnn::operations::compute_throttle_utils::throttle_mm_perf(
         device->arch(), output_cores.num_cores(), compute_defines, ttnn::get_throttle_level(compute_kernel_config));
@@ -507,9 +506,10 @@ tt::tt_metal::ProgramDescriptor build_program_descriptor(
         0,
         0,                             // activation reuse related arguments
         static_cast<uint32_t>(false),  // split_reader_cb_shared (not used in width sharded)
-        static_cast<uint32_t>(activation_config.activation),
-        static_cast<uint32_t>(activation_config.thread),
-        activation_config.param0};
+        static_cast<uint32_t>(activation_config.type),
+        activation_config.param0,
+        activation_config.param1,
+        activation_config.param2};
 
     std::vector<uint32_t> activation_kernel_compile_args = {
         (uint32_t)stride_w,

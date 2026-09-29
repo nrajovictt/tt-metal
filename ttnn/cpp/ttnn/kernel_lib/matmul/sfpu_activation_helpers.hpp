@@ -13,12 +13,20 @@ using ttnn::operations::matmul::KernelActivation;
 
 namespace compute_kernel_lib {
 
+// These activations currently have math-only APIs. Other activations support pack.
+template <KernelActivation Act>
+inline constexpr ActivationThread activation_thread =
+    Act == KernelActivation::MISH || Act == KernelActivation::SQRT || Act == KernelActivation::LEAKY_RELU ||
+            Act == KernelActivation::ELU || Act == KernelActivation::EXP || Act == KernelActivation::RECIP
+        ? ActivationThread::Math
+        : ActivationThread::Pack;
+
 // Initialize once at kernel startup on the selected thread.
 template <
     KernelActivation Act,
     uint32_t Param0 = 0,
     uint32_t Param1 = 0,
-    ActivationThread Thread = ActivationThread::Pack>
+    ActivationThread Thread = activation_thread<Act>>
 struct ActivationInitHelper {
     FORCE_INLINE static void init();
 };

@@ -19,7 +19,13 @@ enum class KernelActivation : uint32_t {
     HARDSIGMOID,
     HARDTANH,
     SELU,
-    SOFTPLUS
+    SOFTPLUS,
+    MISH,
+    SQRT,
+    LEAKY_RELU,
+    ELU,
+    EXP,
+    RECIP
 };
 
 enum class ActivationThread : uint32_t { Math, Pack };

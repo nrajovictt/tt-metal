@@ -20,7 +20,8 @@ void kernel_main() {
             return MatmulShape::of(2, 2, 2, 2, 1, k_blocks, batches);
         }
     }();
-    constexpr bool with_bias = post_op == 1 || post_op == 4 || post_op == 7 || post_op == 9 || post_op == 10;
+    constexpr bool with_bias =
+        post_op == 1 || post_op == 4 || post_op == 7 || post_op == 9 || post_op == 10 || post_op == 12;
     constexpr uint32_t bias_tiles = (post_op == 10 ? 16 : 4) * output_blocks;
     constexpr MatmulBiasMode bias_mode = post_op == 9    ? MatmulBiasMode::ColumnIndexed
                                          : post_op == 10 ? MatmulBiasMode::FullBlockElementwise
@@ -30,9 +31,15 @@ void kernel_main() {
     constexpr uint32_t partials_cb_id = same_cb ? out : partials;
     compute_kernel_hw_startup<SrcOrder::Reverse>(in0, in1, out);
     matmul_block_init(in0, in1, false, 2, 2, 1);
-    constexpr KernelActivation activation = post_op == 3 || post_op == 4 ? KernelActivation::RELU6
-                                            : post_op == 8               ? KernelActivation::GELU_TANH
-                                                                         : KernelActivation::NONE;
+    constexpr KernelActivation activation = post_op == 3 || post_op == 4     ? KernelActivation::RELU6
+                                            : post_op == 8                   ? KernelActivation::GELU_TANH
+                                            : post_op == 11 || post_op == 12 ? KernelActivation::MISH
+                                            : post_op == 13                  ? KernelActivation::SQRT
+                                                                             : KernelActivation::NONE;
+    static_assert(activation_thread<KernelActivation::MISH> == ActivationThread::Math);
+    static_assert(activation_thread<KernelActivation::SQRT> == ActivationThread::Math);
+    static_assert(activation_thread<KernelActivation::GELU> == ActivationThread::Pack);
+    static_assert(!MatmulActivation<>::enabled);
     constexpr bool pack_relu = post_op == 2 || post_op == 7;
     using Activation = MatmulActivation<activation, 0, 0, 0, pack_relu>;
     Activation::init();
