@@ -509,6 +509,10 @@
 
 - name: "(Kimi-K3-2.8T) MLA chunked accuracy 55k@5k vs golden trace"
   fabric_profile: torus_xy
+  # Deliberately only KIMI_K3_HF_MODEL, unlike the four legs below that also set KIMI_K3_CKPT.
+  # test_mla.py never calls golden.resolve_checkpoint(); it loads MLA weights through the adapter's
+  # env_var, and quantization_config.ignore covers self_attn, so MLA is bf16 inside the MXFP4
+  # checkpoint. This leg reads no routed-expert weights, so the dequantized export buys it nothing.
   cmd: |
     export KIMI_K3_HF_MODEL=/mnt/weka/model-weights/llm/moonshotai/Kimi-K3-mxfp4-2496450e
 
