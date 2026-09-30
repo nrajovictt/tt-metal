@@ -42,18 +42,9 @@ from safetensors import safe_open
 
 # The 5-layer module-level trace and the full-model depth trace.
 #
-# On Weka under `model-cache/stable/`, NOT `model-cache/scratch/`: scratch carries the K2.7 traces
-# and a K3 tree that is filenames without bytes -- pointing here at that one made `metadata.json`
-# raise JSONDecodeError on char 0 and the row shards raise "header too small" from safe_open
-# (CI run 36537053700). `stable/` is the populated copy: 403 GB / 236 files for the 1M trace and
-# 65 GB / 43 for the 100k.
-#
-# Watch the failure mode if either of these paths is ever wrong again: a *missing* directory makes
-# `resolve_trace` return None and the tests SKIP GREEN rather than fail, so confirm the accuracy
-# legs actually ran. The stub tree failing loudly was luck, not design.
-#
-# `structured_traces/k3_vllm_code_debug_1M_head_tail` (193 GB / 443) also lives under this root and
-# nothing here reads it yet.
+# `model-cache/stable/`, not `model-cache/scratch/` -- the scratch tree holds a K3 copy that is
+# filenames without bytes. Get this root wrong and a *missing* directory makes `resolve_trace`
+# return None, which makes the tests skip rather than fail, so it shows up as a green run.
 GOLDEN_ROOT = Path("/mnt/weka/model-cache/stable/deepseek-prefill-cache/golden")
 TRACE_100K = GOLDEN_ROOT / "structured_traces" / "kimi_k3_100k_vllm"
 TRACE_1M = GOLDEN_ROOT / "k3_vllm_code_debug_1M"
@@ -152,13 +143,10 @@ def resolve_trace(default: Path) -> GoldenTrace | None:
 def resolve_checkpoint() -> Path | None:
     """The Kimi-K3 checkpoint named by `$KIMI_K3_CKPT` / `$KIMI_K3_HF_MODEL`, if it has an index.
 
-    `$KIMI_K3_CKPT` is tried FIRST and the order is load-bearing. These callers read tensors, and
-    the two variables no longer name the same directory: since the move to Weka, `$KIMI_K3_HF_MODEL`
-    is the published MXFP4 checkpoint and `$KIMI_K3_CKPT` the dequantized bf16 export. MXFP4 stores
-    routed experts quantized, so its index carries no `...experts.N.w{1,2,3}.weight` and
-    `load_tensors` dies with "index is missing 2688 weights" -- which is exactly what happened when
-    HF_MODEL was preferred. Whatever needs the published checkpoint (the MoE gate's router, the one
-    unquantized MoE tensor group) reads `$KIMI_K3_HF_MODEL` directly and is unaffected.
+    `$KIMI_K3_CKPT` first, and the order matters: `$KIMI_K3_HF_MODEL` is the published MXFP4
+    checkpoint, whose index holds no dequantized `experts.N.w{1,2,3}` keys, so preferring it breaks
+    every caller here -- they all read tensors. The MoE gate wants the MXFP4 router and reads
+    `$KIMI_K3_HF_MODEL` directly, so it is unaffected.
     """
     for var in ("KIMI_K3_CKPT", "KIMI_K3_HF_MODEL"):
         value = os.getenv(var)
@@ -166,9 +154,8 @@ def resolve_checkpoint() -> Path | None:
             continue
         if (Path(value) / "model.safetensors.index.json").is_file():
             return Path(value)
-        # Set but unusable. Say so: the fallthrough silently substitutes the *other* checkpoint, and
-        # if that one is MXFP4 the run dies ~40 s later in load_tensors with "index is missing 2688
-        # weights", which reads like a checkpoint-content bug rather than a missing index here.
+        # Worth a line: falling through silently substitutes the other checkpoint, and the failure
+        # then surfaces as a missing-keys error naming that one instead of the missing index here.
         logger.warning(f"${var}={value} has no model.safetensors.index.json; skipping it")
     return None
 

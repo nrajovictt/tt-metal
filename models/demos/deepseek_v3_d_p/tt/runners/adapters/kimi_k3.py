@@ -73,8 +73,7 @@ class KimiK3Adapter(MLAPrefillAdapter):
     # full-depth golden — the 1M trace records decoder_output for layers 0..24 of 93 — so a runner
     # run cannot check end-to-end accuracy and must not pretend to. It is named here because the
     # runner reads the attribute unconditionally at config-print time.
-    # Weka `model-cache/stable/`, not `scratch/` -- see the note on `GOLDEN_ROOT` in
-    # tests/kimi_k3/golden.py for why the distinction matters.
+    # `stable/`, not `scratch/` -- see the GOLDEN_ROOT note in tests/kimi_k3/golden.py.
     prefill_trace_default = "/mnt/weka/model-cache/stable/deepseek-prefill-cache/golden/k3_vllm_code_debug_1M"
     # Loading the staged checkpoint wholesale needs an MXFP4 -> bf16 dequantizer that does not exist
     # yet, so the full-transformer fixtures stay skipped. The MoE gate is exempt: it is unquantized and read
