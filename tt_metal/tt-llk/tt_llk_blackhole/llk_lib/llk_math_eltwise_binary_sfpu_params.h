@@ -10,7 +10,7 @@
 #include "llk_math_eltwise_sfpu_common.h"
 
 template <typename Callable, typename... Args>
-inline void _llk_math_eltwise_binary_sfpu_params_(
+inline __attribute__((always_inline)) void _llk_math_eltwise_binary_sfpu_params_(
     Callable&& sfpu_func,
     std::uint32_t dst_index_in0,
     std::uint32_t dst_index_in1,
