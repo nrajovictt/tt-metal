@@ -69,7 +69,7 @@ case "${MODEL}" in
     SC1_MAX_SEQ_LEN=56320
     RUNNER_ENV="export PREFILL_HF_MODEL=/mnt/models/blaze/moonshotai/Kimi-K3-dequantized;"
     PRODUCER_ENV="export PREFILL_PRODUCER_MANIFEST='${MANIFEST}'; \
-        export PREFILL_TRACE_DIR=/mnt/models/deepseek-prefill-cache/golden/k3_vllm_code_debug_1M;"
+        export PREFILL_TRACE_DIR=/mnt/weka/model-cache/stable/deepseek-prefill-cache/golden/k3_vllm_code_debug_1M;"
     ;;
   *)
     echo "unknown model key '${MODEL}'" >&2

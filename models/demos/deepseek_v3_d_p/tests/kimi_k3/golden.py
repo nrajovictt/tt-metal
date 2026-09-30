@@ -42,15 +42,19 @@ from safetensors import safe_open
 
 # The 5-layer module-level trace and the full-model depth trace.
 #
-# STILL ON NFS, deliberately, along with the bf16 export `$KIMI_K3_CKPT` names -- that Weka copy
-# has no `model.safetensors.index.json`, so `resolve_checkpoint` skipped it and fell through to
-# MXFP4 (run 36546139689). Only the MXFP4 checkpoint and the TTNN cache are on Weka today. The Weka
-# copies under `model-cache/scratch/deepseek-ai/deepseek-prefill-cache/golden/` exist but do not
-# read back: `metadata.json` raises JSONDecodeError on char 0 and the row shards raise
-# "header too small" from safe_open, i.e. the files are there but empty or truncated (CI run
-# 36537053700). Note the failure mode if you retry the move -- a *missing* directory makes
-# `resolve_trace` return None and the tests skip green, so confirm the accuracy legs actually ran.
-GOLDEN_ROOT = Path("/mnt/models/deepseek-prefill-cache/golden")
+# On Weka under `model-cache/stable/`, NOT `model-cache/scratch/`: scratch carries the K2.7 traces
+# and a K3 tree that is filenames without bytes -- pointing here at that one made `metadata.json`
+# raise JSONDecodeError on char 0 and the row shards raise "header too small" from safe_open
+# (CI run 36537053700). `stable/` is the populated copy: 403 GB / 236 files for the 1M trace and
+# 65 GB / 43 for the 100k.
+#
+# Watch the failure mode if either of these paths is ever wrong again: a *missing* directory makes
+# `resolve_trace` return None and the tests SKIP GREEN rather than fail, so confirm the accuracy
+# legs actually ran. The stub tree failing loudly was luck, not design.
+#
+# `structured_traces/k3_vllm_code_debug_1M_head_tail` (193 GB / 443) also lives under this root and
+# nothing here reads it yet.
+GOLDEN_ROOT = Path("/mnt/weka/model-cache/stable/deepseek-prefill-cache/golden")
 TRACE_100K = GOLDEN_ROOT / "structured_traces" / "kimi_k3_100k_vllm"
 TRACE_1M = GOLDEN_ROOT / "k3_vllm_code_debug_1M"
 
