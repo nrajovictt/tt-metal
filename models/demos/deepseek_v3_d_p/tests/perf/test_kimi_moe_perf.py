@@ -103,46 +103,17 @@ class _MoEPerfCase:
 # 5,331,206 / 5,438,128 / 5,344,249 ns (jobs 108833542648, 108591989836, 108483307703), so this is a
 # 5.0% speedup against their median, not a short record window.
 #
-# 2026-09-29 (run 36524165128) read 3,967,248 ns and tripped the LOWER edge -- the first nightly to
-# carry #57850. DELIBERATELY NOT re-cut to it, per the rule above. A ~4.0 ms reading is not new and
-# does not track that PR: 2026-09-17 and 09-18 read 4,197,497 and 4,097,242 ns (runs 35184045324,
-# 35309122445) at the same 25-program count as the 09-19..09-21 runs that read 5.19-5.39 ms, i.e.
-# this shape already had a low mode ~22% under nominal while the code was unchanged. Program count
-# does not separate the two modes, so the "short record window" check in the comment above does not
-# explain it either. Re-cutting the midpoint onto the low mode would fail every nominal run.
-#
-# Re-centred 2026-09-29 to 5,278,801 ns, the MIDRANGE of the eight nominal samples on main:
-# 5,119,474 / 5,192,521 / 5,298,751 / 5,331,206 / 5,344,249 / 5,362,686 / 5,386,625 / 5,438,128 ns
-# (runs 36563075934, 35562931923, 36537053700, 36380072947, 36219496340, 35490556003, 35422790757,
-# 36295942167). The 09-28 cut to 5,077,713 was a single branch sample below that whole population,
-# so the next nominal run failed the UPPER edge at 5,298,751; re-centring on the median of seven
-# then put 5,119,474 0.21% under the LOWER edge. Both were centring errors, not model changes.
-#
-# Midrange, not median, because what the band has to cover is the RANGE: centring on the median
-# wastes the asymmetry and leaves one tail short, which is exactly how the 09-29 median cut failed.
-#
-# Margin widened 4% -> 5%, which the "never widen" rule above does NOT forbid: that rule is about a
-# midpoint gone stale, and this is measured spread. Eight samples span 6.22% peak to peak, so a
-# +/-4% band (8% wide) only ever fit by being centred near-perfectly -- and the comment below
-# already recorded 7.12% peak to peak on the previous shape, i.e. 4% was never enough. At 5% around
-# the midrange the band is [5,014,860, 5,542,741], ~2% clear at both ends. If a later sample still
-# falls out, the thing to fix is the warm-up variability, not the number.
-#
-# The ~4.0 ms low mode stays OUT of this calibration deliberately: at 22% under it is nowhere near
-# the nominal spread, it is an anomaly to diagnose, and it will keep tripping the lower edge.
-#
 # K2.7-Code is architecturally identical to K2.6 (61 layers, 384 routed experts, same dims), so the
 # MoE shapes are unchanged; only the label moved.
 _K2_7 = _MoEPerfCase(
     label="kimi-k2.7",
     config=KimiK27Config,
-    expected_ns=5_278_801,
-    # 5%, not 3%: K2.7 runs FIRST in the merged job, so it absorbs the warm-up variability that K3,
-    # running second on an already-warm device, does not -- eight samples span 6.22% peak to peak
-    # against K3's 0.44%, and five on the previous shape spanned 7.12%. Do NOT tighten this to match
-    # K3; the asymmetry is a property of the job order, not of the midpoint. Sub-nominal DDR doubles
-    # it to 10%.
-    margin=0.05,
+    expected_ns=5_077_713,
+    # 4%, not 3%: K2.7 runs FIRST in the merged job, so it absorbs the warm-up variability that K3,
+    # running second on an already-warm device, does not -- five samples on the previous shape spanned
+    # 7.12% peak to peak against K3's 0.44%. Do NOT tighten this to match K3; the asymmetry is a
+    # property of the job order, not of the midpoint. Sub-nominal DDR doubles it to 8%.
+    margin=0.04,
     shape_note="384 experts / top-8, 7168 emb",
 )
 
