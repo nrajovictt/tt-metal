@@ -207,9 +207,8 @@ _CACHE_ENV = "TT_KIMI_K3_PREFILL_TTNN_CACHE"
 
 # On the Weka scratch share, under the vendor prefix like every other model cache there and
 # alongside Kimi-K2.7's `Kimi-K2_7-Code-Cache/`. This is a DEFAULT rather than a requirement: the
-# point of a cache is that every run
-# benefits without anyone remembering an environment variable, and
-# `$TT_KIMI_K3_PREFILL_TTNN_CACHE` still relocates it (or disables it, if set empty).
+# point of a cache is that every run benefits without anyone remembering an environment variable,
+# and `$TT_KIMI_K3_PREFILL_TTNN_CACHE` still relocates it (or disables it, if set empty).
 _DEFAULT_CACHE = Path("/mnt/weka/model-cache/scratch/moonshotai/Kimi-K3-Cache/Kimi-K3-Cache-prefill")
 
 
