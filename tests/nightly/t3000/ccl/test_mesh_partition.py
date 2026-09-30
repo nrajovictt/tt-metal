@@ -248,6 +248,27 @@ def run_mesh_partition_test(
         logger.info(f"Failed indices: {failed_indices}")
         assert eq, f"{first_failed_tensor_index} FAILED: {output_results}"
 
+    # Label contract (see tests/ttnn/unit_tests/operations/ccl/test_mesh_partition_topology.py): Shard(dim) on the
+    # partitioned mesh axis and the input's placement elsewhere; a whole-mesh partition collapses to {N}, [Shard(dim)]
+    # over the row-major device order. Before compute_output_topologies existed the output kept the input's label.
+    input_topology = tt_input_tensors_list[0].tensor_topology()
+    output_topology = tt_out_tensor_list[0].tensor_topology()
+    output_placements = list(output_topology.placements())
+    if cluster_axis is None:
+        assert list(output_topology.distribution_shape()) == [mesh_shape[0] * mesh_shape[1]]
+        assert len(output_placements) == 1
+        assert isinstance(output_placements[0], ttnn.PlacementShard) and output_placements[0].dim == dim
+    else:
+        input_placements = list(input_topology.placements())
+        assert list(output_topology.distribution_shape()) == list(mesh_shape)
+        assert len(output_placements) == len(input_placements) == 2
+        for axis, (out_placement, in_placement) in enumerate(zip(output_placements, input_placements)):
+            if axis == cluster_axis:
+                assert isinstance(out_placement, ttnn.PlacementShard) and out_placement.dim == dim
+            else:
+                assert repr(out_placement) == repr(in_placement), f"axis {axis}: {out_placement} != {in_placement}"
+    assert list(output_topology.mesh_coords()) == list(input_topology.mesh_coords())
+
 
 @pytest.mark.parametrize(
     "device_params",

@@ -95,6 +95,67 @@ MeshPartitionDeviceOperation::tensor_return_value_t MeshPartitionDeviceOperation
     return tensor;
 }
 
+std::vector<tt::tt_metal::TensorTopology> MeshPartitionDeviceOperation::compute_output_topologies(
+    const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
+    using Placement = tt::tt_metal::distributed::MeshMapperConfig::Placement;
+    using Shard = tt::tt_metal::distributed::MeshMapperConfig::Shard;
+    using Replicate = tt::tt_metal::distributed::MeshMapperConfig::Replicate;
+
+    // Every device on the partitioned axis ends up with a distinct slice of `dim`, so the output is Shard{dim} on
+    // that axis and unchanged elsewhere (the same contract reduce_scatter_minimal_async labels its output with).
+    // `dim` is already normalised to [0, rank) by ttnn::prim::mesh_partition. This runs before validation, so it
+    // must not dereference the optional cluster_axis unchecked.
+    const auto& input_topology = tensor_args.input_tensor.tensor_topology();
+    const auto& input_placements = input_topology.placements();
+    const Shard shard_placement{static_cast<int>(operation_attributes.dim)};
+
+    if (!operation_attributes.cluster_axis.has_value()) {
+        // Whole-mesh partition linearises the devices row-major and hands each a distinct slice of `dim`. An N-D
+        // label would need Shard{dim} on every axis, which the composer rejects (dims must be unique), so the honest
+        // label is the collapsed 1-D one over the same row-major coordinates, matching ShardTensorToMesh.
+        const auto num_shards = static_cast<uint32_t>(input_topology.distribution_shape().mesh_size());
+        return {tt::tt_metal::TensorTopology(
+            tt::tt_metal::distributed::MeshShape(num_shards), {shard_placement}, input_topology.mesh_coords())};
+    }
+
+    const size_t cluster_axis = operation_attributes.cluster_axis.value();
+    if (input_placements.size() > 1) {
+        if (cluster_axis >= input_placements.size()) {
+            return {};
+        }
+        auto output_placements = input_placements;
+        output_placements[cluster_axis] = shard_placement;
+        return {tt::tt_metal::TensorTopology(
+            input_topology.distribution_shape(), std::move(output_placements), input_topology.mesh_coords())};
+    }
+
+    // Collapsed 1-D label ({N},[placement]) from the default mappers. When the collapsed axis is the partitioned
+    // axis (e.g. cluster_axis=1 on a 1xN mesh) every device in the label holds a distinct slice, so [Shard{dim}]
+    // over the same coordinates is the honest label rather than leaving the input's Replicate in place.
+    const auto num_label_devices = input_topology.distribution_shape().mesh_size();
+    const uint32_t cluster_axis_size =
+        detail::get_cluster_axis_size(tensor_args.input_tensor, operation_attributes.cluster_axis);
+    if (num_label_devices == cluster_axis_size) {
+        return {tt::tt_metal::TensorTopology(
+            input_topology.distribution_shape(), {shard_placement}, input_topology.mesh_coords())};
+    }
+
+    // Replicated over the whole mesh but partitioned along one of several axes: only an N-D label over the device
+    // mesh can say "Shard{dim} here, Replicate there". The collapsed coordinates already enumerate that mesh
+    // row-major, so they carry over unchanged.
+    const auto& mesh_shape = tensor_args.input_tensor.device()->get_view().shape();
+    if (num_label_devices == mesh_shape.mesh_size() && cluster_axis < mesh_shape.dims() &&
+        std::holds_alternative<Replicate>(input_placements[0])) {
+        ttsl::SmallVector<Placement> output_placements(mesh_shape.dims(), Replicate{});
+        output_placements[cluster_axis] = shard_placement;
+        return {tt::tt_metal::TensorTopology(mesh_shape, std::move(output_placements), input_topology.mesh_coords())};
+    }
+
+    // A collapsed Shard label partitioned along one axis of a multi-axis mesh has no exact expression in either
+    // form; fall back to the union default (input label) until the shared ccl topology helper lands.
+    return {};
+}
+
 }  // namespace ttnn::operations::ccl
 
 namespace ttnn::prim {
