@@ -16,6 +16,7 @@
   cmd: |
     mkdir -p generated/test_reports
     ENABLE_NIGHTLY_TT_TRAIN_TESTS=1 build/tt-train/tests/ttml_tests --gtest_output=xml:generated/test_reports/ctest_report.xml --gtest_filter=*NIGHTLY_*
+    echo "TEST"
   skus:
     bh_p100:
       timeout: 40
@@ -30,6 +31,7 @@
   cmd: |
     mkdir -p generated/test_reports
     build/tt-train/tests/ttml_tests --gtest_output=xml:generated/test_reports/ctest_report.xml --gtest_filter="-*NIGHTLY*"
+    echo "TEST"
   ai_summary:
     authoritative_job_status: true
   skus:
