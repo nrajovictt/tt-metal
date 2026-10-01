@@ -7,7 +7,8 @@ program config ttnn.SDPAProgramConfig(grid (8,8) unless DEC_GRID, exp_approx_mod
 math_approx True, fp32_dest_acc_en True, packer_l1_acc True). Paged K/V cache [max_num_blocks, nkv, block 32, d]
 in DRAM, page table [B, blocks_per_user] int32 (random permutation, as the demo), Q [1, B, nh, d] bf16 TILE.
 Env: DEC_B (32), DEC_POS (comma list of cache positions), DEC_GRID (8x8), DEC_KV_DTYPE (bfp8_b|bfloat16),
-DEC_NH 32, DEC_NKV 8, DEC_D 128, DEC_BLOCK 32, DEC_MAXSEQ (default 2*max pos, >= 8192), DEC_ITERS 3.
+DEC_NH 32, DEC_NKV 8, DEC_D 128, DEC_BLOCK 32, DEC_MAXSEQ (default 2*max pos, >= 8192), DEC_ITERS 3,
+DEC_FIDELITY (HiFi2; LoFi|HiFi2|HiFi3|HiFi4, to probe whether compute reaches the memory-bound wall).
 One process per DEC_POS list; each position is DEC_ITERS invocations.
 """
 import os
@@ -42,7 +43,8 @@ def test_decode_sweep(device):
     q_tt = ttnn.Tensor(q, ttnn.bfloat16).to(ttnn.TILE_LAYOUT).to(device)
     scale = 1.0 / (d ** 0.5)
     pc = ttnn.SDPAProgramConfig(compute_with_storage_grid_size=ttnn.CoreCoord(gx, gy), exp_approx_mode=False, q_chunk_size=0, k_chunk_size=0)
-    ck = ttnn.WormholeComputeKernelConfig(math_fidelity=ttnn.MathFidelity.HiFi2, math_approx_mode=True, fp32_dest_acc_en=True, packer_l1_acc=True)
+    fid = getattr(ttnn.MathFidelity, os.environ.get("DEC_FIDELITY", "HiFi2"))
+    ck = ttnn.WormholeComputeKernelConfig(math_fidelity=fid, math_approx_mode=True, fp32_dest_acc_en=True, packer_l1_acc=True)
     for pos in positions:
         cur_pos_tt = ttnn.Tensor(torch.tensor([pos for _ in range(b)], dtype=torch.int32), ttnn.int32).to(device)
         for it in range(iters):

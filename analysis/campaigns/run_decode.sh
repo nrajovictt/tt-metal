@@ -5,10 +5,10 @@ TAG=$1; MODE=${2:-plain}
 # Path resolution for both layouts (workspace or $TTM/analysis/campaigns): see campaign_paths.sh.
 SD=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd); . "$SD/campaign_paths.sh"
 cd $TTM; export TT_METAL_HOME=$TTM ARCH_NAME=blackhole TT_METAL_FORCE_JIT_COMPILE=1; source $PYENV
-export DEC_B=${DEC_B:-32} DEC_POS=${DEC_POS:-1024} DEC_GRID=${DEC_GRID:-8x8} DEC_KV_DTYPE=${DEC_KV_DTYPE:-bfp8_b} DEC_ITERS=${DEC_ITERS:-3} DEC_NH=${DEC_NH:-32} DEC_NKV=${DEC_NKV:-8} DEC_D=${DEC_D:-128} DEC_BLOCK=${DEC_BLOCK:-32}
+export DEC_B=${DEC_B:-32} DEC_POS=${DEC_POS:-1024} DEC_GRID=${DEC_GRID:-8x8} DEC_KV_DTYPE=${DEC_KV_DTYPE:-bfp8_b} DEC_ITERS=${DEC_ITERS:-3} DEC_NH=${DEC_NH:-32} DEC_NKV=${DEC_NKV:-8} DEC_D=${DEC_D:-128} DEC_BLOCK=${DEC_BLOCK:-32} DEC_FIDELITY=${DEC_FIDELITY:-HiFi2}
 if [ "$MODE" = mp ]; then TP="python -m tracy -r --perf-counter-multipass --profiler-capture-perf-counters=all -m pytest"; else TP="python -m tracy -r -m pytest"; fi
 rm -f generated/profiler/.logs/profile_log_device.csv; rm -rf generated/profiler/reports/*
-T0=$(date -u +%Y-%m-%dT%H:%M:%SZ); ENVS="b=$DEC_B pos=$DEC_POS grid=$DEC_GRID kv_dtype=$DEC_KV_DTYPE nh=$DEC_NH nkv=$DEC_NKV d=$DEC_D block=$DEC_BLOCK iters=$DEC_ITERS maxseq=${DEC_MAXSEQ:-auto}"
+T0=$(date -u +%Y-%m-%dT%H:%M:%SZ); ENVS="b=$DEC_B pos=$DEC_POS grid=$DEC_GRID kv_dtype=$DEC_KV_DTYPE nh=$DEC_NH nkv=$DEC_NKV d=$DEC_D block=$DEC_BLOCK iters=$DEC_ITERS maxseq=${DEC_MAXSEQ:-auto} fidelity=$DEC_FIDELITY"
 echo "### $TAG DECODE mode=$MODE start $T0 sha=$(git rev-parse --short HEAD) env: $ENVS"
 $TP analysis/decode_sweep.py::test_decode_sweep -s > $DD/$TAG.log 2>&1 || true
 if ! grep -q "1 passed" $DD/$TAG.log || [ ! -s generated/profiler/.logs/profile_log_device.csv ]; then echo "RUN FAILED, see $DD/$TAG.log"; grep -E "^E |Error|FAILED" $DD/$TAG.log | head -5; exit 1; fi
