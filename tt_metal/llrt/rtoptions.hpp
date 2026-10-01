@@ -237,6 +237,9 @@ class RunTimeOptions {
     bool profiler_buffer_usage_enabled = false;
     bool profiler_noc_events_enabled = false;
     uint32_t profiler_perf_counter_mode = 0;
+    bool profiler_riscv_pmc_enabled = false;
+    uint32_t profiler_riscv_pmc_event3 = 0;
+    uint32_t profiler_riscv_pmc_event4 = 0;
     std::string profiler_noc_events_report_path;
     bool profiler_disable_dump_to_files = false;
     bool profiler_disable_push_to_tracy = false;
@@ -667,6 +670,13 @@ public:
             compile_hash_str += "_";
             compile_hash_str += get_feature_hash_string((llrt::RunTimeDebugFeatures)i);
         }
+        // The RISC-V PMC event selects are compile-time constants baked into the baby-core
+        // firmware, so two runs that differ only in the selects must not share a firmware build.
+        // Appended only when the feature is on, so the hash stays byte-identical (and every
+        // existing JIT cache and pre-compiled bundle stays valid) for everyone not using it.
+        if (profiler_riscv_pmc_enabled) {
+            compile_hash_str += fmt::format("_pmc{:x}_{:x}", profiler_riscv_pmc_event3, profiler_riscv_pmc_event4);
+        }
         return compile_hash_str;
     }
 
@@ -694,6 +704,9 @@ public:
     bool get_profiler_buffer_usage_enabled() const { return profiler_buffer_usage_enabled; }
     bool get_profiler_noc_events_enabled() const { return profiler_noc_events_enabled; }
     uint32_t get_profiler_perf_counter_mode() const { return profiler_perf_counter_mode; }
+    bool get_profiler_riscv_pmc_enabled() const { return profiler_riscv_pmc_enabled; }
+    uint32_t get_profiler_riscv_pmc_event3() const { return profiler_riscv_pmc_event3; }
+    uint32_t get_profiler_riscv_pmc_event4() const { return profiler_riscv_pmc_event4; }
     std::string get_profiler_noc_events_report_path() const { return profiler_noc_events_report_path; }
     bool get_profiler_disable_dump_to_files() const { return profiler_disable_dump_to_files; }
     bool get_profiler_disable_push_to_tracy() const { return profiler_disable_push_to_tracy; }
