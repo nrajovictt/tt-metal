@@ -24,14 +24,14 @@ fi
 rm -f generated/profiler/.logs/profile_log_device.csv
 T0=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "### $TAG mode=$MODE start $T0 sha=$(git rev-parse --short HEAD) branch=$(git branch --show-current)"
-echo "### env: S=$SDPA_SEQ nh=$SDPA_NH nkv=$SDPA_NKV d=$SDPA_HEAD_DIM q=$SDPA_QCHUNK k=$SDPA_KCHUNK causal=$SDPA_CAUSAL dtype=$SDPA_DTYPE fid=$SDPA_FIDELITY exp_approx=$SDPA_EXP_APPROX iters=$SDPA_ITERS kv_dtype=${SDPA_KV_DTYPE:-} grid=${SDPA_GRID:-full} fp32_acc=${SDPA_FP32_ACC:-0} packer_l1_acc=${SDPA_PACKER_L1_ACC:-0} math_approx=${SDPA_MATH_APPROX:-1}"
+echo "### env: S=$SDPA_SEQ nh=$SDPA_NH nkv=$SDPA_NKV d=$SDPA_HEAD_DIM q=$SDPA_QCHUNK k=$SDPA_KCHUNK causal=$SDPA_CAUSAL dtype=$SDPA_DTYPE fid=$SDPA_FIDELITY exp_approx=$SDPA_EXP_APPROX iters=$SDPA_ITERS kv_dtype=${SDPA_KV_DTYPE:-} grid=${SDPA_GRID:-full} fp32_acc=${SDPA_FP32_ACC:-0} packer_l1_acc=${SDPA_PACKER_L1_ACC:-0} math_approx=${SDPA_MATH_APPROX:-1} riscv_pmc=${TT_METAL_PROFILE_RISCV_PMC:-off}"
 echo "### zone_config: $(grep -h '#define SDPA_' ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/sdpa_zone_config.hpp 2>/dev/null | tr '\n' ' ')"
 $TP analysis/zone_sweep.py::test_zone_sweep -s > $DD/$TAG.log 2>&1 || true
 if ! grep -q "1 passed" $DD/$TAG.log || [ ! -s generated/profiler/.logs/profile_log_device.csv ]; then echo "RUN FAILED, see $DD/$TAG.log"; grep -E "Error|FAILED|Traceback" $DD/$TAG.log | head -5; exit 1; fi
 {
   FW=$(grep -m1 -o "firmware bundle version: [0-9a-z.-]*" $DD/$TAG.log | sed "s/firmware bundle version: //")
   CORES=$(grep -m1 -oE "grid=[0-9]+x[0-9]+" $DD/$TAG.log | sed "s/grid=//" | awk -Fx '{print $1*$2}')
-  echo "PROVENANCE: $CARD ${CORES:-?} cores fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current); $T0; cmd: $TP analysis/zone_sweep.py::test_zone_sweep -s; env S=$SDPA_SEQ nh=$SDPA_NH nkv=$SDPA_NKV d=$SDPA_HEAD_DIM q=$SDPA_QCHUNK k=$SDPA_KCHUNK causal=$SDPA_CAUSAL dtype=$SDPA_DTYPE fid=$SDPA_FIDELITY exp_approx=$SDPA_EXP_APPROX iters=$SDPA_ITERS kv_dtype=${SDPA_KV_DTYPE:-} grid=${SDPA_GRID:-full} fp32_acc=${SDPA_FP32_ACC:-0} packer_l1_acc=${SDPA_PACKER_L1_ACC:-0} math_approx=${SDPA_MATH_APPROX:-1} mode=$MODE; zone_config: $(grep -h '#define SDPA_' ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/sdpa_zone_config.hpp 2>/dev/null | tr '\n' ' ')"
+  echo "PROVENANCE: $CARD ${CORES:-?} cores fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current); $T0; cmd: $TP analysis/zone_sweep.py::test_zone_sweep -s; env S=$SDPA_SEQ nh=$SDPA_NH nkv=$SDPA_NKV d=$SDPA_HEAD_DIM q=$SDPA_QCHUNK k=$SDPA_KCHUNK causal=$SDPA_CAUSAL dtype=$SDPA_DTYPE fid=$SDPA_FIDELITY exp_approx=$SDPA_EXP_APPROX iters=$SDPA_ITERS kv_dtype=${SDPA_KV_DTYPE:-} grid=${SDPA_GRID:-full} fp32_acc=${SDPA_FP32_ACC:-0} packer_l1_acc=${SDPA_PACKER_L1_ACC:-0} math_approx=${SDPA_MATH_APPROX:-1} riscv_pmc=${TT_METAL_PROFILE_RISCV_PMC:-off} mode=$MODE; zone_config: $(grep -h '#define SDPA_' ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/sdpa_zone_config.hpp 2>/dev/null | tr '\n' ' ')"
   cat generated/profiler/.logs/profile_log_device.csv
 } > $DD/$TAG.csv
 # reducer expects 2 header lines then data; strip the PROVENANCE line for it

@@ -24,6 +24,11 @@ No script hardcodes a user directory, so a fresh clone runs unedited.
   `campaign_r1_add.sh`, `campaign_r1f.sh` and `campaign_r1g.sh` (the re-measurement blocks).
   `campaign_t21.sh`, `campaign_t22.sh` and `campaign_t24_zoff.sh` accept `POINTS`, `MODES`, `ABL`,
   `WITH_MP`, `PROD_Q_DTYPE` and `PROD_KV_DTYPE` overrides.
+- **The RISC-V baby-core counter sweep**, `campaign_pmc.sh`: one SDPA config run once per RISC-V
+  PMC event pair, reduced by `riscv_pmc_table.py`. Any runner gains per-core PMC rows when
+  `TT_METAL_PROFILE_RISCV_PMC` is exported, and `zone_decomp.py` folds them into its summary. The
+  hardware, the event catalog and the interpretation traps are in `BRISC_PERF_COUNTERS.md` at the
+  repository root.
 - **The reducers**, all offline, all run with no arguments and all writing beside themselves:
   `zone_decomp.py` (the per-tag decomposition that joins the zones-off wall, the zones-on parts and
   the counters), `report_tables.py`, `regime_tables.py`, `reduce_decode.py`, `r1_tables.py`,

@@ -28,6 +28,8 @@ DD = Path(os.environ.get("DD") or (Path.cwd() if _REPO else _SD))
 WORK = Path(os.environ.get("SDPA_WORK", _REPO.parent if _REPO else _SD.parents[3]))
 TTM = Path(os.environ.get("TTM", _REPO or WORK / "tt-metal"))
 sys.path.insert(0, str(TTM / "analysis"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from riscv_pmc_table import decode_select  # noqa: E402
 from roofline import SdpaConfig, predict  # noqa: E402
 
 ACC_IN = {"TRISC_0": 0.0, "TRISC_1": 2.0, "TRISC_2": 2.0, "BRISC": 2.0, "NCRISC": 2.0}
@@ -364,6 +366,35 @@ def decompose(tag, mp_tag=None):
                 summ[f"ctr_{name}_mean"] = sub.value.mean()
                 summ[f"ctr_{name}_max"] = sub.value.max()
         summ["ctr_ref_cnt_mean"] = cc.ref_cnt.mean()
+    # RISC-V baby-core HPM (BRISC_PERF_COUNTERS.md). Read from the zones-off capture by preference:
+    # zone markers perturb the very stalls these counters measure, so the uninstrumented run is the
+    # honest one. Falls back to the mp capture, which is where the Tensix counters come from.
+    for pmc_tag in (f"{tag}_zoff", f"{tag}_zon", mp_tag):
+        if not pmc_tag or not (DD / f"{pmc_tag}_riscv_pmc.csv").exists():
+            continue
+        p = pd.read_csv(DD / f"{pmc_tag}_riscv_pmc.csv")
+        if p.empty:
+            continue
+        p = p[p.run_id.isin(sorted(p.run_id.unique())[1:])]
+        summ["pmc_src"] = pmc_tag
+        summ["pmc_ev3"] = decode_select(int(p.ev3.iloc[0]))
+        summ["pmc_ev4"] = decode_select(int(p.ev4.iloc[0]))
+        for risc, g in p.groupby("risc"):
+            # Fractions of each core's own mcycle, meaned over cores and kept invocations.
+            summ[f"pmc_{risc}_ev3_frac"] = (g.pmc3 / g.mcycle).mean()
+            summ[f"pmc_{risc}_ev4_frac"] = (g.pmc4 / g.mcycle).mean()
+            summ[f"pmc_{risc}_ipc"] = (g.minstret / g.mcycle).mean()
+            summ[f"pmc_{risc}_mcycle_mean"] = g.mcycle.mean()
+            # Work-normalised ratio. With the recommended pair (mem.stall_any, mem.tti_push) this is
+            # stall cycles per Tensix instruction issued, which is the only cross-config-comparable
+            # form -- per-cycle fractions share a denominator that varies ~2x across cores and
+            # manufacture correlations. See BRISC_PERF_COUNTERS.md, "normalise by work".
+            denom = g.pmc4.replace(0, pd.NA)
+            summ[f"pmc_{risc}_ev3_per_ev4"] = (g.pmc3 / denom).mean()
+            summ[f"pmc_{risc}_ev3_per_ev4_cv"] = (
+                (g.pmc3 / denom).std() / (g.pmc3 / denom).mean() if (g.pmc3 / denom).mean() else float("nan")
+            )
+        break
     df = pd.DataFrame(rows)
     df.to_csv(DD / f"decomp_{tag}.csv", index=False)
     return df, summ
