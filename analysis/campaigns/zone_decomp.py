@@ -100,6 +100,35 @@ WAIT_PARTS = ["K_WAIT", "Q_WAIT", "V_WAIT", "QKTIM_WAIT", "RESERVE_QKT", "OUT_RE
 FE_PARTS = ["RECONFIG", "MASK", "MASK_DIAG", "PUSH_HOLD", "POPS", "EXP_INIT", "PUSHES"]
 READER_PARTS = ["R_K_READ", "R_V_READ", "R_Q_READ"]
 
+# L1 client port counters. A grant is one accepted 128-bit access, so bytes = grants * 16, and the
+# channels of a group must be summed. Listed by *grant* counter name rather than derived from the
+# request name: L1 ports 1 and 8 carry generically named grants (L1_0_PORT1_GRANT, L1_1_PORT8_GRANT)
+# because those ports are shared behind a round-robin arbiter, so "<request>_GRANT" silently misses them.
+#
+# NOC direction names are from the NIU's side, not L1's: ring0 "outgoing" is data leaving the NIU into
+# L1, i.e. a read landing locally. Verified against the analytic Q + K/V re-read volume to 0.00 percent
+# on the causal grid; noc_bytes.py reports the same numbers in full.
+BYTES_PER_GRANT = 16
+L1_GRANT_GROUPS = {
+    "noc_read_into_l1": ["L1_0_NOC_RING0_OUTGOING_0_GRANT", "L1_0_NOC_RING0_OUTGOING_1_GRANT",
+                         "L1_2_NOC_RING0_OUTGOING_2_GRANT", "L1_2_NOC_RING0_OUTGOING_3_GRANT"],
+    "noc_forward_out_of_l1": ["L1_0_NOC_RING0_INCOMING_0_GRANT", "L1_0_NOC_RING0_INCOMING_1_GRANT",
+                              "L1_2_NOC_RING0_INCOMING_2_GRANT", "L1_2_NOC_RING0_INCOMING_3_GRANT"],
+    "noc_write_out_of_l1": ["L1_1_NOC_RING1_INCOMING_0_GRANT", "L1_1_NOC_RING1_INCOMING_1_GRANT",
+                            "L1_3_NOC_RING1_INCOMING_2_GRANT", "L1_3_NOC_RING1_INCOMING_3_GRANT"],
+    # On-chip only: L1 into SrcA/SrcB, and DEST out to L1. Compare against the model's
+    # unpack_bytes_total / pack_bytes_total, which are 5-44x and 69-183x low respectively.
+    "l1_unpack": ["L1_0_UNPACKER_0_GRANT", "L1_0_PORT1_GRANT",
+                  "L1_1_EXT_UNPACKER_1_GRANT", "L1_1_EXT_UNPACKER_2_GRANT", "L1_1_EXT_UNPACKER_3_GRANT",
+                  "L1_2_EXT_UNPACKER_4_GRANT", "L1_2_EXT_UNPACKER_5_GRANT", "L1_2_EXT_UNPACKER_6_GRANT",
+                  "L1_2_EXT_UNPACKER_7_GRANT"],
+    "l1_pack": ["L1_1_PORT8_GRANT",
+                "L1_3_TDMA_PACK_EXT_0_GRANT", "L1_3_TDMA_PACK_EXT_1_GRANT",
+                "L1_3_TDMA_PACK_EXT_2_GRANT", "L1_3_TDMA_PACK_EXT_3_GRANT",
+                "L1_4_TDMA_PACK_EXT_4_GRANT", "L1_4_TDMA_PACK_EXT_5_GRANT",
+                "L1_4_TAG_SEARCH_PACKER1_GRANT"],
+}
+
 
 def parse_tag(tag):
     m = re.search(r"(causal|noncausal)_(?:S\d+_)?q(\d+)k(\d+)", tag)
@@ -389,8 +418,11 @@ def decompose(tag, mp_tag=None):
             "THREAD_INSTRUCTIONS_1",
             "THREAD_INSTRUCTIONS_2",
             "MATH_INSTRN_AVAILABLE",
+            "MATH_INSTRN_STARTED",
             "UNPACK_INSTRN_AVAILABLE_0",
             "PACKER_BUSY",
+            "PACKER_DEST_READ_AVAILABLE",
+            "DEST_READ_GRANTED_0",
             "UNPACK0_BUSY_THREAD0",
             "L1_0_UNPACKER_0",
             "L1_0_NOC_RING0_INCOMING_0",
@@ -401,6 +433,16 @@ def decompose(tag, mp_tag=None):
                 summ[f"ctr_{name}_mean"] = sub.value.mean()
                 summ[f"ctr_{name}_max"] = sub.value.max()
         summ["ctr_ref_cnt_mean"] = cc.ref_cnt.mean()
+        # L1 port bytes per invocation, summed over every core and every channel of the group. The noc_*
+        # groups are whole-op off-core traffic: read_into_l1 carries the K/V re-reads, so unlike the
+        # model's dram_in_bytes footprint it moves with q_chunk, and write_out_of_l1 is the output. The
+        # l1_* groups are on-chip only and are per core, matching the basis of unpack/pack_bytes_total.
+        for label, grants in L1_GRANT_GROUPS.items():
+            rows_g = cc[cc.counter.isin(grants)]
+            if not len(rows_g):
+                continue
+            total = rows_g.value.sum() * BYTES_PER_GRANT / len(rids)
+            summ[f"{label}_bytes"] = total / cores if label.startswith("l1_") else total
     # RISC-V baby-core HPM (BRISC_PERF_COUNTERS.md). Read from the zones-off capture by preference:
     # zone markers perturb the very stalls these counters measure, so the uninstrumented run is the
     # honest one. Falls back to the mp capture, which is where the Tensix counters come from.
