@@ -13,7 +13,7 @@ ix(){ # tag sq t mode
   R=$(ls -d generated/profiler/reports/*/ 2>/dev/null | sort | tail -1); sleep 2
   if [ -n "$R" ] && ls $R/ops_perf_results*.csv >/dev/null 2>&1; then cp $R/ops_perf_results*.csv $OUT/${TAG}_ops_perf_results.csv; cp generated/profiler/.logs/profile_log_device.csv $OUT/${TAG}_profile_log_device.csv; else echo "RUN FAILED $TAG"; grep -E "^E |Error" $OUT/$TAG.log | head -3; fi
   FW=$(grep -m1 -o "firmware bundle version: [0-9a-z.-]*" $OUT/$TAG.log | sed "s/firmware bundle version: //")
-  echo "PROVENANCE: p100a fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current) (kernels 72620d5, calibration checkout); $T0; cmd: IX_SQ=$2 IX_T=$3 IX_ITERS=3 IX_HEADS=64 IX_D=128 $TP analysis/indexer_probe.py::test_indexer_probe -s; mode=$MODE" > $OUT/${TAG}_PROVENANCE.txt
+  echo "PROVENANCE: $CARD fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current) (kernels 72620d5, calibration checkout); $T0; cmd: IX_SQ=$2 IX_T=$3 IX_ITERS=3 IX_HEADS=64 IX_D=128 $TP analysis/indexer_probe.py::test_indexer_probe -s; mode=$MODE" > $OUT/${TAG}_PROVENANCE.txt
   echo "### $TAG done $(date -u +%H:%M:%SZ)"
 }
 ix t29_indexer_Sq2048_T8192 2048 8192
@@ -31,7 +31,7 @@ if [ -n "$R" ] && ls $R/ops_perf_results*.csv >/dev/null 2>&1; then
   mv $OUT/cells_COUNTERS.csv $OUT/cells_COUNTERS_noindexer.csv 2>/dev/null
   python3 $SCRIPT --postprocess $OUT/ops_perf_results_COUNTERS_noindexer.csv $OUT/cells_COUNTERS_noindexer.csv >> $OUT/run_COUNTERS_noindexer.log 2>&1 && mv $OUT/topk_campaign_results.csv $OUT/results_COUNTERS_noindexer.csv
   FW=$(grep -m1 -o "firmware bundle version: [0-9a-z.-]*" $OUT/run_COUNTERS_noindexer.log | sed "s/firmware bundle version: //")
-  echo "PROVENANCE: p100a fw_bundle=$FW; tt-metal-fresh $(git rev-parse HEAD) (main 2dbd14bf632 merged + BRISC fw-size patch); $T0; cmd: python -m tracy -r -p --perf-counter-multipass --profiler-capture-perf-counters=all topk_campaign.py --classes COUNTERS --exclude-op indexer --out $OUT; report $R" > $OUT/PROVENANCE_COUNTERS_noindexer.txt
+  echo "PROVENANCE: $CARD fw_bundle=$FW; tt-metal-fresh $(git rev-parse HEAD) (main 2dbd14bf632 merged + BRISC fw-size patch); $T0; cmd: python -m tracy -r -p --perf-counter-multipass --profiler-capture-perf-counters=all topk_campaign.py --classes COUNTERS --exclude-op indexer --out $OUT; report $R" > $OUT/PROVENANCE_COUNTERS_noindexer.txt
   echo "### topk group COUNTERS (indexer excluded) done $(date -u +%H:%M:%SZ)"
 else echo "### topk COUNTERS (indexer excluded) FAILED (no ops report)"; grep -E "Error|Traceback|FATAL" $OUT/run_COUNTERS_noindexer.log | head -5; fi
 echo "### T2.9 done $(date -u +%H:%M:%SZ)"

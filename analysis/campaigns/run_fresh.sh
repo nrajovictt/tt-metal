@@ -17,6 +17,6 @@ echo "### $TAG FRESH mode=$MODE start $T0 sha=$(git rev-parse --short HEAD) bran
 $TP analysis/zone_sweep.py::test_zone_sweep -s > $DD/$TAG.log 2>&1 || true
 if ! grep -q "1 passed" $DD/$TAG.log || [ ! -s generated/profiler/.logs/profile_log_device.csv ]; then echo "RUN FAILED, see $DD/$TAG.log"; grep -E "Error|FAILED|Traceback" $DD/$TAG.log | head -5; exit 1; fi
 FW=$(grep -m1 -o "firmware bundle version: [0-9a-z.-]*" $DD/$TAG.log | sed "s/firmware bundle version: //")
-{ echo "PROVENANCE: p100a 110 cores 1350MHz fw_bundle=$FW; tt-metal-fresh $(git rev-parse HEAD) branch $(git branch --show-current) (main tip 2dbd14bf632 merged, local BRISC firmware-size patch); $T0; cmd: $TP analysis/zone_sweep.py::test_zone_sweep -s; env $ENVS mode=$MODE"; cat generated/profiler/.logs/profile_log_device.csv; } > $DD/$TAG.csv
+{ echo "PROVENANCE: $CARD fw_bundle=$FW; tt-metal-fresh $(git rev-parse HEAD) branch $(git branch --show-current) (main tip 2dbd14bf632 merged, local BRISC firmware-size patch); $T0; cmd: $TP analysis/zone_sweep.py::test_zone_sweep -s; env $ENVS mode=$MODE"; cat generated/profiler/.logs/profile_log_device.csv; } > $DD/$TAG.csv
 tail -n +2 $DD/$TAG.csv > /tmp/zr_$$.csv; python $TTM/analysis/zone_reduce.py /tmp/zr_$$.csv --out $DD/$TAG | tee -a $DD/$TAG.log | grep -v "^wrote"; rm -f /tmp/zr_$$.csv
 echo "### $TAG done $(date -u +%H:%M:%SZ)"

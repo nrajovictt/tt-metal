@@ -18,7 +18,7 @@ grp(){ # classes, mode
     cp generated/profiler/.logs/profile_log_device.csv $OUT/profile_log_device_$TAG.csv 2>/dev/null || true
     python3 $SCRIPT --postprocess $OUT/ops_perf_results_$TAG.csv $OUT/cells_$TAG.csv >> $OUT/run_$TAG.log 2>&1 && mv $OUT/topk_campaign_results.csv $OUT/results_$TAG.csv
     FW=$(grep -m1 -o "firmware bundle version: [0-9a-z.-]*" $OUT/run_$TAG.log | sed "s/firmware bundle version: //")
-    echo "PROVENANCE: p100a fw_bundle=$FW; tt-metal-fresh $(git rev-parse HEAD) branch $(git branch --show-current) (main tip 2dbd14bf632 merged, local BRISC firmware-size patch f3fbc8984f0); $T0; cmd: $TP $SCRIPT --classes $CL --out $OUT; report $R" > $OUT/PROVENANCE_$TAG.txt
+    echo "PROVENANCE: $CARD fw_bundle=$FW; tt-metal-fresh $(git rev-parse HEAD) branch $(git branch --show-current) (main tip 2dbd14bf632 merged, local BRISC firmware-size patch f3fbc8984f0); $T0; cmd: $TP $SCRIPT --classes $CL --out $OUT; report $R" > $OUT/PROVENANCE_$TAG.txt
     echo "### topk group $CL done $(date -u +%H:%M:%SZ) cells=$(wc -l < $OUT/cells_$TAG.csv) results=$(wc -l < $OUT/results_$TAG.csv 2>/dev/null)"
   else
     echo "### topk group $CL FAILED (no ops report) $(date -u +%H:%M:%SZ)"; grep -E "Error|Traceback|FATAL" $OUT/run_$TAG.log | head -5

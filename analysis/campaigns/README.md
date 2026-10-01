@@ -60,7 +60,10 @@ resolve the same names through `os.environ`. It supports two layouts with no edi
 
 Every value is an environment override that wins over the resolved default: `DD` (where captures and
 derived tables are written), `SDPA_WORK`, `TTM`, `TTM_FRESH`, `PYENV` (the tt-metal virtual
-environment activate script, `$TTM/python_env/bin/activate` by default) and `HANDOFF`. Set `DD` to a
+environment activate script, `$TTM/python_env/bin/activate` by default), `HANDOFF`, `CARD` (the
+card label written into every PROVENANCE line, read off the board by `card_id.py`; `SDPA_CARD` also
+overrides it) and `TT_METAL_CACHE` (the JIT kernel cache, `$WORK/tt-metal-cache` by default so that
+it cannot fill a small `$HOME`). Set `DD` to a
 directory of your own before any new measurement, or the first write fails. The full contract is
 `PORTABLE_CONTRACT.md` beside this file.
 

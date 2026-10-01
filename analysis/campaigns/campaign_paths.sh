@@ -33,7 +33,17 @@ else
 fi
 TTM_FRESH=${TTM_FRESH:-$WORK/tt-metal-fresh}
 PYENV=${PYENV:-$TTM/python_env/bin/activate}
-export DD SD WORK HANDOFF TTM TTM_FRESH PYENV
+# Card identity for the PROVENANCE lines, read off the board instead of hardcoded, so a capture
+# taken on a board other than the calibration p100a is never mislabelled. SDPA_CARD overrides.
+CARD=${CARD:-$(python3 "$SD/card_id.py" 2>/dev/null || echo unknown-card)}
+# The JIT kernel cache defaults to $HOME/.cache/tt-metal-cache, and on these reservation hosts $HOME
+# is a small share (9.4 G on bh-33) that the cache alone can fill. A full $HOME does not fail loudly:
+# the build emits "Failed to rename temporary file ... No such file or directory", pytest errors out
+# in ~16 s and the runner reports RUN FAILED with nothing obviously about disk. Park it next to the
+# captures instead, on the big filesystem. TT_METAL_CACHE is read by tt_metal/llrt/rtoptions.cpp.
+TT_METAL_CACHE=${TT_METAL_CACHE:-$WORK/tt-metal-cache}
+mkdir -p "$TT_METAL_CACHE" 2>/dev/null || true
+export DD SD WORK HANDOFF TTM TTM_FRESH PYENV CARD TT_METAL_CACHE
 case "$DD" in                 # writing a campaign into a git checkout is almost never wanted
   "$TTM"/*) echo "note: DD=$DD is inside the checkout $TTM; export DD to a directory of your own" >&2 ;;
 esac

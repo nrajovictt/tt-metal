@@ -14,7 +14,7 @@ echo "### $TAG mode=$MODE start $T0 sha=$(git rev-parse --short HEAD) target=$TA
 eval $TP $TARGET -s > $DD/$TAG.log 2>&1 || true
 if ! grep -q " passed" $DD/$TAG.log || [ ! -s generated/profiler/.logs/profile_log_device.csv ]; then echo "RUN FAILED, see $DD/$TAG.log"; grep -E "Error|FAILED|Traceback" $DD/$TAG.log | head -5; exit 1; fi
 FW=$(grep -m1 -o "firmware bundle version: [0-9a-z.-]*" $DD/$TAG.log | sed "s/firmware bundle version: //")
-{ echo "PROVENANCE: p100a 110 cores 1350MHz fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current); $T0; cmd: $TP $TARGET -s; env $ENVSTR mode=$MODE; zone_config: $(grep -h '#define SDPA_' ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/sdpa_zone_config.hpp | tr '\n' ' ')"; cat generated/profiler/.logs/profile_log_device.csv; } > $DD/$TAG.csv
+{ echo "PROVENANCE: $CARD fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current); $T0; cmd: $TP $TARGET -s; env $ENVSTR mode=$MODE; zone_config: $(grep -h '#define SDPA_' ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/sdpa_zone_config.hpp | tr '\n' ' ')"; cat generated/profiler/.logs/profile_log_device.csv; } > $DD/$TAG.csv
 R=$(ls -d generated/profiler/reports/*/ 2>/dev/null | sort | tail -1); sleep 2; if [ -n "$R" ] && ls $R/ops_perf_results*.csv >/dev/null 2>&1; then cp $R/ops_perf_results*.csv $DD/${TAG}_ops_perf_results.csv; fi
 tail -n +2 $DD/$TAG.csv > /tmp/zr_$$.csv; python analysis/zone_reduce.py /tmp/zr_$$.csv --out $DD/$TAG | tee -a $DD/$TAG.log | grep -v "^wrote"; rm -f /tmp/zr_$$.csv
 echo "### $TAG done $(date -u +%H:%M:%SZ)"

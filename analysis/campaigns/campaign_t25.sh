@@ -16,7 +16,7 @@ run(){ # tag, test target, env already exported
   if [ -z "$R" ] || ! ls $R/ops_perf_results*.csv >/dev/null 2>&1; then echo "RUN FAILED $1 (no ops report)"; grep -E "Error|FAILED|Traceback" $ML/$1.log | head -5; return 0; fi
   cp $R/ops_perf_results*.csv $ML/$1_ops_perf_results.csv; cp generated/profiler/.logs/profile_log_device.csv $ML/$1_profile_log_device.csv 2>/dev/null || true
   FW=$(grep -m1 -o "firmware bundle version: [0-9a-z.-]*" $ML/$1.log | sed "s/firmware bundle version: //")
-  echo "PROVENANCE: p100a fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current) (kernels 72620d5 + zone patch compiled out, SDPA_ZONES=0); $T0; cmd: HF_MODEL=$HF_MODEL MESH_DEVICE=N150 $(env | grep -E '^ATTN_' | tr '\n' ' ') python -m tracy -r -m pytest $2 -s; ops report copied from $R" > $ML/$1_PROVENANCE.txt
+  echo "PROVENANCE: $CARD fw_bundle=$FW; tt-metal $(git rev-parse HEAD) branch $(git branch --show-current) (kernels 72620d5 + zone patch compiled out, SDPA_ZONES=0); $T0; cmd: HF_MODEL=$HF_MODEL MESH_DEVICE=N150 $(env | grep -E '^ATTN_' | tr '\n' ' ') python -m tracy -r -m pytest $2 -s; ops report copied from $R" > $ML/$1_PROVENANCE.txt
   echo "### $1 done $(date -u +%H:%M:%SZ)"
 }
 export ATTN_ITERS=3 ATTN_SKIP_REF=1 ATTN_PAGED=1
