@@ -39,6 +39,8 @@ No script hardcodes a user directory, so a fresh clone runs unedited.
   `zone_decomp.py` takes its model floor from `analysis/roofline.py` when present and otherwise from
   `$POLARIS/ttsim/perf/roofline_sdpa.py`; `roofline_compat.py` checks that the two agree.
   `noc_bytes.py` turns the L1 port grant counters into whole-op NoC bytes and joins them to the model.
+  `wall_fit.py`, `pack_lane_refit.py`, `rebaseline_table.py` and `decode_model_check.py` check the
+  polaris model against the measured walls and counters.
 - **The TopK campaign driver**, `topk_campaign.py`: a standalone script, not a pytest module, that
   walks a fixed grid of 300 cells. `--list` enumerates without a card, `--classes` selects a class
   group, `--out` names the output directory, `--exclude-op` skips a cell op, and `--postprocess`
