@@ -36,6 +36,8 @@ No script hardcodes a user directory, so a fresh clone runs unedited.
   `zone_decomp.py` (the per-tag decomposition that joins the zones-off wall, the zones-on parts and
   the counters), `report_tables.py`, `regime_tables.py`, `reduce_decode.py`, `r1_tables.py`,
   `r1b_decode_table.py`, `r1f_counters.py`, `r1f_table.py`, `r1g_threads.py` and `r1_cardlog.py`.
+  `zone_decomp.py` takes its model floor from `analysis/roofline.py` when present and otherwise from
+  `$POLARIS/ttsim/perf/roofline_sdpa.py`; `roofline_compat.py` checks that the two agree.
 - **The TopK campaign driver**, `topk_campaign.py`: a standalone script, not a pytest module, that
   walks a fixed grid of 300 cells. `--list` enumerates without a card, `--classes` selects a class
   group, `--out` names the output directory, `--exclude-op` skips a cell op, and `--postprocess`

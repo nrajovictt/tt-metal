@@ -8,8 +8,9 @@ Zone tax (T0.2, data/bh_zones/t02_zone_tax_summary.csv): inside-window inflation
 ACC_IN = {TRISC_0: 0, others: 2} cycles; whole-thread inflation ACC_OUT = 26 cycles per occurrence.
 
 Outputs: decomp_<tag>.csv (long table: iteration, risc, part, cycles_raw, count, cycles_corrected) and a
-summary row appended to decomp_summary.csv. Model floor from tt-metal analysis/roofline.py predict()
-(read-only; identical to polaris roofline_sdpa.py per FACTS s3).
+summary row appended to decomp_summary.csv. Model floor from predict(), taken from tt-metal
+analysis/roofline.py if present, else from $POLARIS/ttsim/perf/roofline_sdpa.py (the model of
+record, runbook section 9; stdlib-only, so no polaris venv is needed). Both read-only.
 """
 import argparse
 import math
@@ -27,10 +28,44 @@ _REPO = next((p for p in (_SD, *_SD.parents) if (p / "ttnn").is_dir() and (p / "
 DD = Path(os.environ.get("DD") or (Path.cwd() if _REPO else _SD))
 WORK = Path(os.environ.get("SDPA_WORK", _REPO.parent if _REPO else _SD.parents[3]))
 TTM = Path(os.environ.get("TTM", _REPO or WORK / "tt-metal"))
+POLARIS = Path(os.environ.get("POLARIS", WORK / "polaris"))
 sys.path.insert(0, str(TTM / "analysis"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from riscv_pmc_table import decode_select  # noqa: E402
-from roofline import SdpaConfig, predict  # noqa: E402
+
+try:
+    from roofline import SdpaConfig, predict  # noqa: E402
+
+    HAVE_MODEL = True
+    MODEL_SOURCE = str(TTM / "analysis/roofline.py")
+except ModuleNotFoundError:
+    try:
+        # analysis/roofline.py is internal and on no branch (runbook 1.1, 12). The polaris copy is the
+        # model of record (runbook 9) and is on a pushed branch; it needs no venv, being stdlib-only.
+        sys.path.insert(0, str(POLARIS / "ttsim" / "perf"))
+        from roofline_sdpa import SdpaConfig, predict  # noqa: E402
+
+        HAVE_MODEL = True
+        MODEL_SOURCE = str(POLARIS / "ttsim/perf/roofline_sdpa.py")
+    except ModuleNotFoundError:
+        HAVE_MODEL = False
+        MODEL_SOURCE = "none"
+if not HAVE_MODEL:
+    # Without either copy the measured decomposition is still exact; only the model floor columns go
+    # NaN, which makes FLOOR, ABOVE_FLOOR and the resid_* summary columns NaN as well.
+
+    class SdpaConfig:
+        def __init__(self, **kw):
+            self.__dict__.update(kw)
+
+    class _NoModel:
+        math_active_cycles = float("nan")
+        inner_iters = float("nan")
+        fpu_cycles = float("nan")
+        sfpu_cycles = float("nan")
+
+    def predict(_cfg):
+        return _NoModel()
 
 ACC_IN = {"TRISC_0": 0.0, "TRISC_1": 2.0, "TRISC_2": 2.0, "BRISC": 2.0, "NCRISC": 2.0}
 ACC_OUT = 26.0
