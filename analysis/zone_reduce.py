@@ -9,10 +9,12 @@ Per run host ID:
   ZONE_TOTAL       : native DeviceZoneScopedSumN totals, per core/RISC
   raw zones        : DeviceZoneScopedN start/end pairs (name, duration) per core/RISC
   perf counters    : 9090 records via analysis/post_process.load_counters (if present)
+  riscv pmc        : 9092/9093/9094 records via analysis/post_process.load_riscv_pmc (if present)
 
 Usage: python analysis/zone_reduce.py <csv> [--out <prefix>]
   writes <prefix>_runs.csv (one row per run), <prefix>_cores.csv (per run/core/RISC spans + zone sums),
-  <prefix>_raw.csv (per raw zone instance), <prefix>_counters.csv (per run/core counters, if any).
+  <prefix>_raw.csv (per raw zone instance), <prefix>_counters.csv (per run/core counters, if any),
+  <prefix>_riscv_pmc.csv (per run/core/RISC baby-core HPM deltas, if any).
 """
 import argparse
 import sys
@@ -22,10 +24,13 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from post_process import load_counters  # noqa: E402
+from post_process import load_counters, load_riscv_pmc  # noqa: E402
 
 PERF_ID = 9090
 PERF_REF_ID = 9091
+# RISC-V baby-core HPM markers. They are TS_DATA packets with no zone name, so they have to be
+# skipped here or they would land in the per-core zone-sum columns as garbage keys.
+RISCV_PMC_IDS = (9092, 9093, 9094)
 
 
 def load(path: Path):
@@ -43,7 +48,7 @@ def load(path: Path):
                 tid = int(p[ix["timer_id"]])
             except ValueError:
                 continue
-            if tid in (PERF_ID, PERF_REF_ID):
+            if tid in (PERF_ID, PERF_REF_ID) or tid in RISCV_PMC_IDS:
                 continue
             typ = p[ix["type"]].strip()
             rec = {
@@ -124,7 +129,12 @@ def reduce(path: Path):
         cnt = load_counters(path)
     except Exception:
         cnt = None
-    return runs, cores, raw, cnt
+    pmc = None
+    try:
+        pmc = load_riscv_pmc(path)
+    except Exception:
+        pmc = None
+    return runs, cores, raw, cnt, pmc
 
 
 def main():
@@ -133,7 +143,7 @@ def main():
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     path = Path(a.csv)
-    runs, cores, raw, cnt = reduce(path)
+    runs, cores, raw, cnt, pmc = reduce(path)
     pd.set_option("display.width", 250)
     print(runs.to_string())
     if a.out:
@@ -142,7 +152,9 @@ def main():
         raw.to_csv(a.out + "_raw.csv", index=False)
         if cnt is not None and len(cnt):
             cnt.to_csv(a.out + "_counters.csv", index=False)
-        print("wrote", a.out + "_{runs,cores,raw,counters}.csv")
+        if pmc is not None and len(pmc):
+            pmc.to_csv(a.out + "_riscv_pmc.csv", index=False)
+        print("wrote", a.out + "_{runs,cores,raw,counters,riscv_pmc}.csv")
 
 
 if __name__ == "__main__":

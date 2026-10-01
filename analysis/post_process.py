@@ -44,6 +44,7 @@ Usage:
 
 import argparse
 import json
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
 
@@ -52,6 +53,11 @@ import pandas as pd
 
 PERF_COUNTER_PROFILER_ID = 9090
 PERF_COUNTER_REF_CNT_FULL_PROFILER_ID = 9091
+
+# RISC-V baby-core HPM markers, emitted by tt_metal/tools/profiler/riscv_pmc.hpp.
+RISCV_PMC_COUNTS_ID = 9092
+RISCV_PMC_CYCLES_ID = 9093
+RISCV_PMC_EVENTS_ID = 9094
 
 
 def parse_meta(s: str) -> dict:
@@ -147,6 +153,83 @@ def load_counters(path: Path) -> pd.DataFrame:
                 "ref_cnt_full_recovered": matched_full is not None,
             }
         )
+    return pd.DataFrame(rows)
+
+
+def load_riscv_pmc(path: Path) -> pd.DataFrame:
+    """Load the RISC-V baby-core HPM markers (BRISC_PERF_COUNTERS.md), one row per launch per core.
+
+    Device firmware emits three TS_DATA markers per core per kernel launch, back to back:
+      9092  (mhpmcounter4 delta << 32) | mhpmcounter3 delta
+      9093  (minstret delta << 32) | mcycle delta
+      9094  (mhpmevent4 << 32) | mhpmevent3
+
+    Everything rides in the CSV `data` column, so no host-side meta_data enrichment is involved.
+    The event selects are re-emitted every launch, which is what lets a multi-run event sweep be
+    merged without trusting run tags: each row says which events produced it.
+
+    Markers can be dropped if a core's L1 profiler buffer fills (zones compete for it), so the
+    three streams are zipped per core and a short stream just yields fewer launches.
+    """
+    by_key: Dict = defaultdict(lambda: {RISCV_PMC_COUNTS_ID: [], RISCV_PMC_CYCLES_ID: [], RISCV_PMC_EVENTS_ID: []})
+
+    with path.open() as f:
+        f.readline()
+        header = f.readline().strip().split(", ")
+        col_x = header.index("core_x")
+        col_y = header.index("core_y")
+        col_risc = header.index("RISC processor type")
+        col_timer = header.index("timer_id")
+        col_time = header.index("time[cycles since reset]")
+        col_data = header.index("data")
+        col_runid = header.index("run host ID")
+
+        for line in f:
+            parts = line.rstrip("\n").split(",", len(header) - 1)
+            if len(parts) < len(header):
+                continue
+            try:
+                tid = int(parts[col_timer])
+            except ValueError:
+                continue
+            if tid not in (RISCV_PMC_COUNTS_ID, RISCV_PMC_CYCLES_ID, RISCV_PMC_EVENTS_ID):
+                continue
+            try:
+                data = int(parts[col_data]) & 0xFFFFFFFFFFFFFFFF
+                ts = int(parts[col_time])
+                run_id = int(parts[col_runid]) if parts[col_runid] else -1
+                key = (run_id, int(parts[col_x]), int(parts[col_y]), parts[col_risc])
+            except ValueError:
+                continue
+            by_key[key][tid].append((ts, data))
+
+    rows = []
+    for (run_id, cx, cy, risc), streams in by_key.items():
+        # Sort by device timestamp: the three markers of one launch land within a few cycles of
+        # each other, and successive launches are far apart, so this recovers emission order.
+        for tid in streams:
+            streams[tid].sort()
+        n = min(len(streams[t]) for t in streams)
+        for i in range(n):
+            counts = streams[RISCV_PMC_COUNTS_ID][i][1]
+            timing = streams[RISCV_PMC_CYCLES_ID][i][1]
+            events = streams[RISCV_PMC_EVENTS_ID][i][1]
+            rows.append(
+                {
+                    "run_id": run_id,
+                    "core_x": cx,
+                    "core_y": cy,
+                    "risc": risc,
+                    "launch": i,
+                    "ev3": events & 0xFFFFFFFF,
+                    "ev4": (events >> 32) & 0xFFFFFFFF,
+                    "pmc3": counts & 0xFFFFFFFF,
+                    "pmc4": (counts >> 32) & 0xFFFFFFFF,
+                    "mcycle": timing & 0xFFFFFFFF,
+                    "minstret": (timing >> 32) & 0xFFFFFFFF,
+                }
+            )
+
     return pd.DataFrame(rows)
 
 
