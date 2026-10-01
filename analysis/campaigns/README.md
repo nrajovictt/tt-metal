@@ -28,7 +28,9 @@ No script hardcodes a user directory, so a fresh clone runs unedited.
   PMC event pair, reduced by `riscv_pmc_table.py`. Any runner gains per-core PMC rows when
   `TT_METAL_PROFILE_RISCV_PMC` is exported, and `zone_decomp.py` folds them into its summary. The
   hardware, the event catalog and the interpretation traps are in `BRISC_PERF_COUNTERS.md` at the
-  repository root.
+  repository root. `campaign_pmc_full.sh` is the grid-wide version: all Tensix counters plus the
+  full PMC sweep over the T2.1 grid and four ablations, zones off and resumable, reduced by
+  `pmc_tensix_corr.py` into a cross-config correlation report.
 - **The reducers**, all offline, all run with no arguments and all writing beside themselves:
   `zone_decomp.py` (the per-tag decomposition that joins the zones-off wall, the zones-on parts and
   the counters), `report_tables.py`, `regime_tables.py`, `reduce_decode.py`, `r1_tables.py`,
