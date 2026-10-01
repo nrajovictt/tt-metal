@@ -302,6 +302,20 @@ void append_fabric_connection_rt_args(
     }
 }
 
+bool is_fabric_neighbor(const FabricNodeId& src_fabric_node_id, const FabricNodeId& dst_fabric_node_id) {
+    if (src_fabric_node_id.mesh_id != dst_fabric_node_id.mesh_id) {
+        return false;
+    }
+    const auto& control_plane = tt::tt_metal::MetalContext::instance().get_control_plane();
+    for (const auto direction : FabricContext::routing_directions) {
+        const auto neighbors = control_plane.get_intra_chip_neighbors(src_fabric_node_id, direction);
+        if (std::find(neighbors.begin(), neighbors.end(), dst_fabric_node_id.chip_id) != neighbors.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<eth_chan_directions> get_neighbor_eth_directions(
     const FabricNodeId& src_fabric_node_id, const FabricNodeId& dst_fabric_node_id) {
     const auto& control_plane = tt::tt_metal::MetalContext::instance().get_control_plane();

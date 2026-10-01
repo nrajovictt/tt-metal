@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <tt-metalium/runtime_args_data.hpp>
+
 #include "all_gather_async_device_operation_types.hpp"
 #include "ttnn/device_operation.hpp"
 
@@ -11,9 +13,9 @@ namespace ttnn::experimental::prim {
 
 struct LlamaShardedMeshWorkloadFactory {
     struct shared_variables_t {
-        tt::tt_metal::KernelHandle worker_sender_reader_kernel_id;
-        tt::tt_metal::KernelHandle worker_sender_writer_kernel_id;
-        std::vector<tt::tt_metal::CoreCoord> sender_worker_cores;
+        // Cache binding objects; data() follows dispatch/trace payload relocation.
+        tt::tt_metal::RuntimeArgsData* reader_args;
+        tt::tt_metal::RuntimeArgsData* writer_args;
     };
     using cached_mesh_workload_t = ttnn::device_operation::AdaptedCachedMeshWorkload<shared_variables_t>;
 
