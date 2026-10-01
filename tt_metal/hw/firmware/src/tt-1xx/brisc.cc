@@ -20,6 +20,7 @@
 #include "internal/firmware_common.h"
 #include "tools/profiler/kernel_profiler.hpp"
 #include "tools/profiler/perf_counters.hpp"
+#include "tools/profiler/riscv_pmc.hpp"
 #include "hostdev/dev_msgs.h"
 #include "internal/risc_attribs.h"
 #include "internal/circular_buffer_interface.h"
@@ -486,6 +487,9 @@ int main() {
 
             // Run the BRISC kernel
             WAYPOINT("R");
+            // Brackets both arms below, so when BRISC has no kernel the counters cover the
+            // wait_for_go_message() spin rather than a kernel.
+            RiscvPmcBegin();
             int index = static_cast<std::underlying_type<TensixProcessorTypes>::type>(TensixProcessorTypes::DM0);
             if (enables & (1u << index)) {
                 // Split 64-bit CB mask into 32-bit halves for efficient RISC-V processing
@@ -538,6 +542,7 @@ int main() {
                 wait_for_go_message();
             }
             WAYPOINT("D");
+            RiscvPmcEnd();
 
             wait_ncrisc_trisc();
 
