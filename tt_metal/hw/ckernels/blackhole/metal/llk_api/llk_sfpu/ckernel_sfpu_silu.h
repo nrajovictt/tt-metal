@@ -10,8 +10,17 @@
 
 namespace ckernel::sfpu {
 
+template <int ITERATIONS>
+void calculate_silu_bf16();
+void init_silu_bf16();
+
 template <bool is_fp32_dest_acc_en, int ITERATIONS>
 inline void calculate_silu() {
+    if constexpr (!is_fp32_dest_acc_en) {
+        init_silu_bf16();
+        calculate_silu_bf16<ITERATIONS>();
+        return;
+    }
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++) {
         sfpi::vFloat x = sfpi::dst_reg[0];
@@ -37,3 +46,5 @@ inline void silu_init() {
 }
 
 }  // namespace ckernel::sfpu
+
+#include "ckernel_sfpu_silu_bf16.h"

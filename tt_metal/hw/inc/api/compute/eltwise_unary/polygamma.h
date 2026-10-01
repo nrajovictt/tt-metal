@@ -44,9 +44,9 @@ ALWI void polygamma_tile(std::uint32_t idst, std::uint32_t n_packed, std::uint32
         DST_SYNC_MODE,
         is_fp32_dest_acc_en,
         calculate_polygamma,
-        (APPROX, is_fp32_dest_acc_en),
+        (APPROX, is_fp32_dest_acc_en, is_fp32_dest_acc_en ? 8 : 32),
         idst,
-        VectorMode::RC,
+        is_fp32_dest_acc_en ? VectorMode::RC : VectorMode::None,
         n_packed,
         scale_packed));
 }

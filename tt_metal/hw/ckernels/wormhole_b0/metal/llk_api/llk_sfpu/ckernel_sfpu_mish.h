@@ -30,8 +30,15 @@ namespace ckernel::sfpu {
  *
  * Saturation: For x >= 8.0, mish(x) is approximated as x.
  */
+template <int ITERATIONS>
+void calculate_mish_bf16();
+
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS = 8>
 inline void calculate_mish() {
+    if constexpr (!is_fp32_dest_acc_en && !APPROXIMATION_MODE) {
+        calculate_mish_bf16<ITERATIONS>();
+        return;
+    }
     constexpr float SAT_HI = 8.0f;
 
 #pragma GCC unroll 8
@@ -77,11 +84,18 @@ inline void calculate_mish() {
     }
 }
 
-template <bool APPROXIMATION_MODE>
+void init_mish_bf16();
+
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en>
 inline void mish_init() {
     math::reset_counters(p_setrwc::SET_ABD_F);
     // exp does not need an init
     recip_init<APPROXIMATION_MODE, false>();
+    if constexpr (!is_fp32_dest_acc_en && !APPROXIMATION_MODE) {
+        init_mish_bf16();
+    }
 }
 
 }  // namespace ckernel::sfpu
+
+#include "ckernel_sfpu_mish_bf16.h"

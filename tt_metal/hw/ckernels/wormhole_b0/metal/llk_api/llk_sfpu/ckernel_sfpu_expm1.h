@@ -176,8 +176,15 @@ sfpi_inline sfpi::vFloat _sfpu_expm1_(sfpi::vFloat a) {
     return r;
 }
 
+template <int ITERATIONS>
+void calculate_expm1_bf16();
+
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
 inline void calculate_expm1() {
+    if constexpr (!is_fp32_dest_acc_en && !APPROXIMATION_MODE) {
+        calculate_expm1_bf16<ITERATIONS>();
+        return;
+    }
     for (int d = 0; d < ITERATIONS; d++) {
         sfpi::vFloat x = sfpi::dst_reg[0];
         sfpi::vFloat y = _sfpu_expm1_<is_fp32_dest_acc_en>(x);
@@ -203,3 +210,5 @@ void expm1_init() {
 }
 
 }  // namespace ckernel::sfpu
+
+#include "ckernel_sfpu_expm1_bf16.h"

@@ -16,8 +16,17 @@ inline void celu_init() { math::reset_counters(p_setrwc::SET_ABD_F); }
 
 // celu(x) = x for x>=0, alpha*(exp(x/alpha)-1) for x<0
 
+template <int ITERATIONS>
+void calculate_celu_bf16();
+
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS = 8>
 inline void calculate_celu(std::uint32_t param0, std::uint32_t param1) {
+    if constexpr (!is_fp32_dest_acc_en) {
+        if (param0 == 0x3f800000u && param1 == 0x3f800000u) {
+            calculate_celu_bf16<ITERATIONS>();
+            return;
+        }
+    }
     sfpi::vFloat alpha = Converter::as_float(param0);
     sfpi::vFloat alpha_recip = Converter::as_float(param1);
 // unroll 2: with expm1_cw_clamped inlined the loop body is large enough that
@@ -39,3 +48,5 @@ inline void calculate_celu(std::uint32_t param0, std::uint32_t param1) {
 }
 
 }  // namespace ckernel::sfpu
+
+#include "ckernel_sfpu_celu_bf16.h"

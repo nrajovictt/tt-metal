@@ -1,0 +1,34 @@
+// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
+// SPDX-License-Identifier: Apache-2.0
+
+#pragma once
+#include <cstdint>
+namespace ckernel::sfpu {
+struct PolygammaBf16Config {
+    static constexpr float kP0 = __builtin_bit_cast(float, 0x3e210000u);
+    static constexpr float kFiniteThreshold = __builtin_bit_cast(float, 0xc0d00000u);
+    static constexpr float kZeroTransitionPreviousMagnitude = __builtin_bit_cast(float, 0x7e7f0000u);
+    static constexpr unsigned kFiniteRepresentative = 48661u;
+    static constexpr unsigned kZeroRepresentative = 0u;
+    static constexpr unsigned kPositiveZeroFirstRaw = 32384u;
+    static constexpr unsigned kNegativeInfinityWord = 0u;
+    static constexpr float kP2[] = {
+        __builtin_bit_cast(float, 0x40530000u),
+        __builtin_bit_cast(float, 0x40b40000u),
+        __builtin_bit_cast(float, 0x41930000u)};
+    static constexpr bool kRepair = true;
+    static constexpr bool kWhRepair = false;
+    static constexpr bool kDirectTail = false;
+    static constexpr bool kFiniteReferencePrecedence = true;
+};
+}  // namespace ckernel::sfpu
+#include "ckernel_sfpu_bf16_inverse_square.h"
+
+namespace ckernel::sfpu {
+
+template <int ITERATIONS = 8>
+inline void calculate_polygamma_bf16() {
+    ckernel::sfpu::bf16::calculate_inverse_square<ckernel::sfpu::PolygammaBf16Config, ITERATIONS>();
+}
+
+}  // namespace ckernel::sfpu
