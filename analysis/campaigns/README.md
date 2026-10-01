@@ -9,7 +9,8 @@ No script hardcodes a user directory, so a fresh clone runs unedited.
 ## What is in the directory
 
 - **The runners**, one process each, all writing into `$DD`: `run_zone.sh` (one
-  `analysis/zone_sweep.py` prefill point, `plain` or `mp` for the perf-counter multipass capture),
+  `analysis/zone_sweep.py` prefill point, `plain`, `mp` for the perf-counter multipass capture, or
+  `ops` for an ops report copied to `<tag>_ops.csv`),
   `run_regime.sh` and `run_regime_fresh.sh` (any pytest target, with an ops report),
   `run_decode.sh` (`analysis/decode_sweep.py` paged decode, always `tracy -r`), `run_fresh.sh`
   (`run_zone.sh` on the main-tip checkout), `run_zone_tax.sh` (the nop-kernel zone cost harness) and

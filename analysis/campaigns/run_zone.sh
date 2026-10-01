@@ -18,6 +18,12 @@ export SDPA_KCHUNK=${SDPA_KCHUNK:-$SDPA_QCHUNK}
 export SDPA_CAUSAL=${SDPA_CAUSAL:-1}
 if [ "$MODE" = mp ]; then
   TP="python -m tracy --perf-counter-multipass --profiler-capture-perf-counters=all -m pytest"
+elif [ "$MODE" = ops ]; then
+  # -r post-processes the device log into an ops report, one row per device op invocation (runbook
+  # 6.1). This is what $POLARIS/ttsim/perf/sdpa_validate.py consumes. It cannot be combined with
+  # --perf-counter-multipass, which emits no report at all (runbook 11.4), so it is its own mode.
+  TP="python -m tracy -r -m pytest"
+  rm -rf generated/profiler/reports/*
 else
   TP="python -m tracy -m pytest"
 fi
@@ -38,4 +44,16 @@ if ! grep -q "1 passed" $DD/$TAG.log || [ ! -s generated/profiler/.logs/profile_
 tail -n +2 $DD/$TAG.csv > /tmp/zr_$$.csv
 python analysis/zone_reduce.py /tmp/zr_$$.csv --out $DD/$TAG | tee -a $DD/$TAG.log | grep -v "^wrote"
 rm -f /tmp/zr_$$.csv
+if [ "$MODE" = ops ]; then
+  # The report writer finishes after tracy's own exit, so a copy issued immediately can capture an
+  # empty file; every campaign runner sleeps here for the same reason (runbook 6.1, 11.6).
+  R=$(ls -d generated/profiler/reports/*/ 2>/dev/null | sort | tail -1)
+  sleep 2
+  if [ -n "$R" ] && compgen -G "$R/ops_perf_results*.csv" >/dev/null; then
+    cp $R/ops_perf_results*.csv $DD/${TAG}_ops.csv
+    echo "### ops report -> $DD/${TAG}_ops.csv ($(($(wc -l < $DD/${TAG}_ops.csv) - 1)) op rows)"
+  else
+    echo "### WARNING: no ops report produced for $TAG"
+  fi
+fi
 echo "### $TAG done $(date -u +%H:%M:%SZ)"
