@@ -1,0 +1,847 @@
+source: generated/profiler/prefill_3k_1dev//reports/2026_10_13_03_37_39/ops_perf_results_2026_10_13_03_37_39.csv
+select=all group=0
+ops: 791   total device kernel time: 135775.3 us
+op-to-op gaps (sum): 57866201.5 us
+time-weighted FPU util, per-core avg : 35.15 %
+time-weighted FPU util, full grid    : 18.64 %  (fraction of whole-chip peak)
+time-weighted PM (model) FPU util    : 12.92 %
+ops with no FPU counters (no compute kernel): 260
+FPU-busy-equivalent time (full grid) : 23914.1 us
+
+== by op type ==
+                                 n  kernel_us  pct_time  fpu_core_avg_tw  fpu_full_grid_tw
+op
+Matmul                       168.0   56385.53     41.53            37.48             18.82
+SDPA                          13.0   28142.16     20.73            23.45             12.50
+MinimalMatmul                 14.0   19604.69     14.44            85.63             48.44
+BinaryNg                     114.0    8118.34      5.98             0.76              0.66
+LayerNorm                     42.0    3528.99      2.60             7.30              1.74
+Embeddings                    16.0    2886.48      2.13             0.68              0.13
+Typecast                      75.0    2524.71      1.86             0.39              0.30
+TopkLargeIndices               4.0    2222.92      1.64             3.59              3.28
+Scatter                        2.0    2100.57      1.55              NaN               NaN
+ArgMax                         4.0    2025.36      1.49              NaN               NaN
+RotaryEmbeddingLlama          26.0    1869.39      1.38             6.72              4.31
+Tilize                         8.0    1748.44      1.29             0.00              0.00
+NlpCreateHeads                13.0    1128.29      0.83              NaN               NaN
+UntilizeCodegen               12.0     688.24      0.51             0.89              0.52
+NLPConcatHeads                13.0     439.06      0.32              NaN               NaN
+Slice                         27.0     391.92      0.29              NaN               NaN
+Pad                            2.0     354.44      0.26              NaN               NaN
+PagedFillCache                26.0     281.29      0.21              NaN               NaN
+Copy                          13.0     259.26      0.19              NaN               NaN
+ShardedToInterleaved         113.0     197.07      0.15              NaN               NaN
+Concat                        14.0     185.48      0.14              NaN               NaN
+TopkRoutePrep                  4.0     177.16      0.13             0.60              0.45
+Ternary                        2.0     164.18      0.12             0.97              0.72
+TopkRouteFinish                4.0      84.83      0.06              NaN               NaN
+ManualSeed                     4.0      69.82      0.05             0.00              0.00
+Sampling                       4.0      67.81      0.05             1.00              0.25
+InterleavedToSharded          17.0      19.30      0.01              NaN               NaN
+NLPCreateQKVHeadsDecode        1.0      16.59      0.01              NaN               NaN
+Reduce                         8.0      14.89      0.01             0.51              0.00
+TilizeWithValPadding           4.0      12.59      0.01             0.05              0.00
+Untilize                       4.0      12.44      0.01             0.00              0.00
+ReshapeView                    2.0      10.79      0.01              NaN               NaN
+SdpaDecode                     1.0       9.58      0.01             0.42              0.22
+PagedFusedUpdateCache          1.0       8.46      0.01             4.82              0.08
+Unary                          4.0       6.57      0.00             0.01              0.00
+Transpose                      2.0       6.55      0.00              NaN               NaN
+Reshard                        6.0       5.94      0.00              NaN               NaN
+UntilizeWithUnpadding          2.0       2.10      0.00             0.60              0.00
+RotaryEmbeddingLlamaFusedQK    1.0       1.76      0.00            24.07              0.38
+NLPConcatHeadsDecode           1.0       1.33      0.00              NaN               NaN
+
+== per op, execution order ==
+ idx                       label fidelity  cores  kernel_us  pct_time  fpu_core_avg  fpu_full_grid  pm_util
+   0                      Tilize    HiFi4  108.0     386.95      0.28          0.00           0.00     0.00
+   1                    Typecast    HiFi4  110.0     222.58      0.16          0.00           0.00     0.00
+   2             UntilizeCodegen    HiFi4  110.0     164.56      0.12          0.68           0.49     0.00
+   3                      Tilize    HiFi4  108.0     390.51      0.29          0.00           0.00     0.00
+   4                    Typecast    HiFi4  110.0     221.87      0.16          0.00           0.00     0.00
+   5             UntilizeCodegen    HiFi4  110.0     161.34      0.12          0.77           0.50     0.00
+   6                      Tilize    HiFi4  108.0     388.78      0.29          0.00           0.00     0.00
+   7                    Typecast    HiFi4  110.0     221.99      0.16          0.00           0.00     0.00
+   8                      Tilize    HiFi4  108.0     391.53      0.29          0.00           0.00     0.00
+   9                    Typecast    HiFi4  110.0     222.05      0.16          0.00           0.00     0.00
+  10                      Tilize    HiFi4    2.0       0.36      0.00          2.24           0.03     0.28
+  11                      Tilize    HiFi4    1.0       1.68      0.00          0.00           0.00     0.06
+  12                    Typecast    HiFi4    1.0       1.25      0.00          0.00           0.00     0.08
+  13                         Pad           110.0     177.76      0.13           NaN            NaN     0.00
+  14                         Pad           110.0     176.68      0.13           NaN            NaN     0.00
+  15        TilizeWithValPadding    HiFi4    1.0       2.99      0.00          0.00           0.00     0.03
+  16                    Typecast    HiFi4    1.0       1.25      0.00          0.00           0.00     0.08
+  17       UntilizeWithUnpadding    HiFi4    1.0       1.05      0.00          0.59           0.00    44.34
+  18        TilizeWithValPadding    HiFi4    1.0       2.99      0.00          0.00           0.00     0.03
+  19                    Typecast    HiFi4    1.0       1.24      0.00          0.00           0.00     0.08
+  20       UntilizeWithUnpadding    HiFi4    1.0       1.05      0.00          0.60           0.00    44.38
+  21        TilizeWithValPadding    HiFi4    1.0       3.62      0.00          0.17           0.00     0.03
+  22        TilizeWithValPadding    HiFi4    1.0       2.98      0.00          0.00           0.00     0.03
+  23                    Typecast    HiFi4    1.0       1.27      0.00          0.00           0.00     0.08
+  24                  Embeddings    HiFi4    1.0       2.58      0.00          0.94           0.01     0.04
+  25                  Embeddings    HiFi4    1.0       2.56      0.00          0.95           0.01     0.04
+  26                   Transpose           110.0       3.27      0.00           NaN            NaN    38.01
+  27                   Transpose           110.0       3.28      0.00           NaN            NaN    37.96
+  28                       Slice             8.0       0.92      0.00           NaN            NaN    50.49
+  29                       Slice             8.0       0.94      0.00           NaN            NaN    49.79
+  30        InterleavedToSharded             2.0       0.67      0.00           NaN            NaN     0.15
+  31        InterleavedToSharded             2.0       0.61      0.00           NaN            NaN     0.16
+  32                  Embeddings    HiFi4    1.0      20.40      0.02          3.73           0.03     0.00
+  33        InterleavedToSharded            32.0       1.16      0.00           NaN            NaN     0.09
+  34                   LayerNorm    HiFi2   32.0       5.49      0.00          3.76           0.99     0.02
+  35            Matmul 4096x6144    HiFi2  110.0      71.73      0.05          7.45           6.77     7.38
+  36        ShardedToInterleaved            32.0       1.01      0.00           NaN            NaN     0.10
+  37     NLPCreateQKVHeadsDecode             1.0      16.59      0.01           NaN            NaN     0.01
+  38                     Reshard             1.0       0.36      0.00           NaN            NaN     0.28
+  39 RotaryEmbeddingLlamaFusedQK    HiFi4    2.0       1.76      0.00         24.07           0.38     0.06
+  40       PagedFusedUpdateCache    HiFi4    2.0       8.46      0.01          4.82           0.08     0.01
+  41                  SdpaDecode    HiFi2   64.0       9.58      0.01          0.42           0.22     0.01
+  42        InterleavedToSharded             1.0       0.58      0.00           NaN            NaN     0.17
+  43        NLPConcatHeadsDecode            32.0       1.33      0.00           NaN            NaN     0.08
+  44            Matmul 4096x4096    HiFi2  110.0      61.22      0.05          5.81           5.29     5.77
+  45                     Reshard            32.0       1.35      0.00           NaN            NaN     0.07
+  46                    BinaryNg    HiFi4  110.0       0.53      0.00          1.72           1.19     0.19
+  47                     Reshard            64.0       0.93      0.00           NaN            NaN     0.11
+  48                   LayerNorm    HiFi2   64.0       5.84      0.00          1.88           0.99     0.02
+  49           Matmul 4096x14336     LoFi  110.0      72.43      0.05          8.66           7.85     8.53
+  50           Matmul 4096x14336     LoFi  110.0      72.69      0.05          8.63           7.82     8.50
+  51                    BinaryNg    HiFi4  110.0      12.18      0.01          0.60           0.54     0.01
+  52                     Reshard            64.0       1.42      0.00           NaN            NaN     0.07
+  53           Matmul 14336x4096    HiFi2  110.0     130.87      0.10          9.53           8.66     9.44
+  54                     Reshard            32.0       0.95      0.00           NaN            NaN     0.11
+  55                    BinaryNg    HiFi4  110.0       0.54      0.00          1.71           1.17     0.18
+  56                     Reshard            64.0       0.93      0.00           NaN            NaN     0.11
+  57                   LayerNorm    HiFi2   64.0       5.86      0.00          1.88           0.98     0.02
+  58           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.13           5.40     5.85
+  59        ShardedToInterleaved            63.0       1.28      0.00           NaN            NaN     0.08
+  60           Matmul 4096x16032    HiFi2   80.0     235.80      0.17          8.14           5.41     5.86
+  61        ShardedToInterleaved            63.0       1.61      0.00           NaN            NaN     0.06
+  62           Matmul 4096x16032    HiFi2   80.0     236.27      0.17          8.14           5.40     5.85
+  63        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+  64           Matmul 4096x16032    HiFi2   80.0     236.45      0.17          8.14           5.40     5.84
+  65        ShardedToInterleaved            63.0       1.83      0.00           NaN            NaN     0.06
+  66           Matmul 4096x16032    HiFi2   80.0     236.45      0.17          8.14           5.40     5.84
+  67        ShardedToInterleaved            63.0       1.81      0.00           NaN            NaN     0.06
+  68           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+  69        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+  70           Matmul 4096x16032    HiFi2   80.0     236.21      0.17          8.14           5.41     5.85
+  71        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+  72           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+  73        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+  74                      Concat           110.0      12.62      0.01           NaN            NaN     0.01
+  75             UntilizeCodegen    HiFi4  110.0      42.77      0.03          0.74           0.46     0.00
+  76                    BinaryNg    HiFi4  110.0      84.60      0.06          0.00           0.00     0.00
+  77                    BinaryNg    HiFi4  110.0      84.34      0.06          0.00           0.00     0.00
+  78                    BinaryNg    HiFi4  110.0      84.14      0.06          0.00           0.00     0.00
+  79                  Embeddings    HiFi4    4.0      34.05      0.03          2.26           0.07     0.00
+  80                   LayerNorm    HiFi2    4.0      65.34      0.05          9.30           0.31     0.00
+  81            Matmul 4096x6144    HiFi2   32.0     221.30      0.16         33.10           8.77     9.57
+  82              NlpCreateHeads           110.0       8.77      0.01           NaN            NaN     0.01
+  83        RotaryEmbeddingLlama    HiFi4  110.0      12.45      0.01          5.31           3.45     0.01
+  84        RotaryEmbeddingLlama    HiFi4  110.0       8.54      0.01          1.77           1.26     0.01
+  85                    Typecast    HiFi4  110.0       1.97      0.00          0.61           0.32     0.05
+  86                    Typecast    HiFi4  110.0       1.93      0.00          0.61           0.33     0.05
+  87              PagedFillCache            32.0       3.73      0.00           NaN            NaN     0.03
+  88              PagedFillCache            32.0       3.53      0.00           NaN            NaN     0.03
+  89                    Typecast    HiFi4  110.0       4.85      0.00          0.74           0.52     0.02
+  90                        SDPA    HiFi4   64.0      32.13      0.02          8.91           4.67     4.72
+  91              NLPConcatHeads           110.0       3.70      0.00           NaN            NaN     0.03
+  92            Matmul 4096x4096    HiFi2   32.0      84.32      0.06         59.38          15.35    16.75
+  93                    BinaryNg    HiFi4  110.0       8.33      0.01          0.44           0.30     0.01
+  94                   LayerNorm    HiFi2    4.0      65.07      0.05          9.34           0.31     0.00
+  95           Matmul 4096x14336     LoFi   32.0     211.98      0.16         41.69          10.73    11.66
+  96           Matmul 4096x14336     LoFi   32.0     211.75      0.16         41.73          10.74    11.67
+  97                    BinaryNg    HiFi4  110.0      38.56      0.03          0.87           0.69     0.00
+  98           Matmul 14336x4096    HiFi2   32.0     300.09      0.22         57.18          15.11    16.47
+  99                    BinaryNg    HiFi4  110.0      10.17      0.01          0.40           0.25     0.01
+ 100                       Slice           110.0      10.20      0.01           NaN            NaN    11.83
+ 101                   LayerNorm    HiFi2    1.0      64.93      0.05          9.36           0.08     0.00
+ 102        InterleavedToSharded            64.0       1.11      0.00           NaN            NaN     0.09
+ 103           Matmul 4096x16032    HiFi2   80.0     236.16      0.17          8.13           5.41     5.85
+ 104        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 105           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 106        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 107           Matmul 4096x16032    HiFi2   80.0     236.22      0.17          8.14           5.41     5.85
+ 108        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 109           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+ 110        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 111           Matmul 4096x16032    HiFi2   80.0     236.33      0.17          8.14           5.40     5.85
+ 112        ShardedToInterleaved            63.0       1.81      0.00           NaN            NaN     0.06
+ 113           Matmul 4096x16032    HiFi2   80.0     236.31      0.17          8.14           5.40     5.85
+ 114        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 115           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 116        ShardedToInterleaved            63.0       1.81      0.00           NaN            NaN     0.06
+ 117           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+ 118        ShardedToInterleaved            63.0       1.72      0.00           NaN            NaN     0.06
+ 119                      Concat           110.0      13.15      0.01           NaN            NaN     0.01
+ 120                        Copy           110.0      20.52      0.02           NaN            NaN     0.00
+ 121                    Typecast    HiFi4  110.0      59.58      0.04          0.00           0.00     0.00
+ 122                    BinaryNg    HiFi4  110.0      45.92      0.03          1.11           0.87     0.00
+ 123                    Typecast    HiFi4  110.0      43.31      0.03          0.72           0.46     0.00
+ 124                    BinaryNg    HiFi4  110.0      44.55      0.03          0.55           0.44     0.00
+ 125                    Typecast    HiFi4  110.0      59.26      0.04          0.00           0.00     0.00
+ 126                    BinaryNg    HiFi4  110.0      46.67      0.03          1.10           0.86     0.00
+ 127                    Typecast    HiFi4  110.0      43.82      0.03          0.70           0.45     0.00
+ 128                    BinaryNg    HiFi4  110.0      43.39      0.03          0.56           0.46     0.00
+ 129                    BinaryNg    HiFi4  110.0     115.96      0.09          0.00           0.00     0.00
+ 130                    Typecast    HiFi4  110.0      58.78      0.04          0.00           0.00     0.00
+ 131                    BinaryNg    HiFi4  110.0      47.45      0.03          1.15           0.83     0.00
+ 132                    BinaryNg    HiFi4  110.0      47.80      0.04          1.19           0.83     0.00
+ 133                    Typecast    HiFi4  110.0      37.38      0.03          0.84           0.53     0.00
+ 134                    BinaryNg    HiFi4  110.0      44.00      0.03          1.35           0.90     0.00
+ 135                     Ternary    HiFi4  110.0      79.09      0.06          0.97           0.75     0.00
+ 136                    BinaryNg    HiFi4  110.0      43.48      0.03          2.19           1.82     0.00
+ 137                    Typecast    HiFi4  110.0      37.48      0.03          0.86           0.53     0.00
+ 138               TopkRoutePrep    HiFi4  101.0      44.27      0.03          0.60           0.45     0.00
+ 139            TopkLargeIndices    HiFi4  110.0     556.32      0.41          3.59           3.28     0.00
+ 140             TopkRouteFinish             4.0      21.05      0.02           NaN            NaN     0.00
+ 141                    Untilize    HiFi4    1.0       3.11      0.00          0.00           0.00    33.90
+ 142                      Reduce    HiFi4    1.0       1.52      0.00          1.24           0.01     0.07
+ 143                    BinaryNg    HiFi4  110.0       2.06      0.00          0.02           0.01     0.05
+ 144                    BinaryNg    HiFi4  110.0       2.13      0.00          0.02           0.01     0.05
+ 145                       Unary    HiFi4  110.0       1.13      0.00          0.01           0.00     0.09
+ 146                    BinaryNg    HiFi4  110.0       2.44      0.00          0.00           0.00     0.04
+ 147                    BinaryNg    HiFi4  110.0       1.84      0.00          0.00           0.00     0.05
+ 148                    Typecast    HiFi4    2.0       1.12      0.00          0.00           0.00     0.09
+ 149                    BinaryNg    HiFi4  110.0       2.43      0.00          0.01           0.01     0.04
+ 150                    Typecast    HiFi4    2.0       1.42      0.00          0.45           0.01     0.07
+ 151                    BinaryNg    HiFi4  110.0       1.83      0.00          0.00           0.00     0.06
+ 152                      Reduce    HiFi4    1.0       2.21      0.00          0.00           0.00     0.04
+ 153                    BinaryNg    HiFi4  110.0       6.01      0.00          0.00           0.00     0.02
+ 154                    Typecast    HiFi4    2.0       1.23      0.00          0.00           0.00     0.08
+ 155                    BinaryNg    HiFi4  110.0       2.02      0.00          0.01           0.01     0.05
+ 156                    BinaryNg    HiFi4  110.0       2.24      0.00          0.02           0.01     0.04
+ 157                    BinaryNg    HiFi4  110.0       2.22      0.00          0.02           0.01     0.04
+ 158                    BinaryNg    HiFi4  110.0       1.38      0.00          0.01           0.01     0.07
+ 159                  ManualSeed    HiFi4  110.0      17.42      0.01          0.00           0.00     0.01
+ 160                    Sampling    HiFi4   32.0      17.13      0.01          1.00           0.24     0.01
+ 161                 ReshapeView           110.0       5.40      0.00           NaN            NaN     0.02
+ 162                     Scatter            32.0    1049.71      0.77           NaN            NaN    10.34
+ 163                      Tilize    HiFi4  109.0      94.42      0.07          0.00           0.00     0.00
+ 164                    BinaryNg    HiFi4  110.0     116.03      0.09          0.00           0.00     0.00
+ 165                       Slice           110.0     102.52      0.08           NaN            NaN    47.61
+ 166                    BinaryNg    HiFi4  110.0      85.21      0.06          0.00           0.00     0.00
+ 167                    BinaryNg    HiFi4  110.0      84.22      0.06          0.00           0.00     0.00
+ 168                    BinaryNg    HiFi4  110.0      85.49      0.06          0.00           0.00     0.00
+ 169                    BinaryNg    HiFi4  110.0      83.40      0.06          0.00           0.00     0.00
+ 170                  Embeddings    HiFi4    4.0      33.66      0.02          2.30           0.08     0.00
+ 171                   LayerNorm    HiFi2    4.0      64.97      0.05          9.35           0.31     0.00
+ 172            Matmul 4096x6144    HiFi2   32.0     221.86      0.16         33.02           8.75     9.55
+ 173              NlpCreateHeads           110.0       8.86      0.01           NaN            NaN     0.01
+ 174        RotaryEmbeddingLlama    HiFi4  110.0      12.36      0.01          5.35           3.48     0.01
+ 175        RotaryEmbeddingLlama    HiFi4  110.0       8.33      0.01          1.77           1.29     0.01
+ 176                    Typecast    HiFi4  110.0       1.96      0.00          0.60           0.32     0.05
+ 177                    Typecast    HiFi4  110.0       1.93      0.00          0.61           0.33     0.05
+ 178              PagedFillCache            32.0       3.52      0.00           NaN            NaN     0.03
+ 179              PagedFillCache            32.0       3.59      0.00           NaN            NaN     0.03
+ 180                    Typecast    HiFi4  110.0       4.97      0.00          0.72           0.51     0.02
+ 181                        SDPA    HiFi4   64.0      32.05      0.02          8.94           4.68     4.74
+ 182              NLPConcatHeads           110.0       3.78      0.00           NaN            NaN     0.03
+ 183            Matmul 4096x4096    HiFi2   32.0      84.54      0.06         59.37          15.31    16.71
+ 184                    BinaryNg    HiFi4  110.0       8.43      0.01          0.46           0.30     0.01
+ 185                   LayerNorm    HiFi2    4.0      65.00      0.05          9.35           0.31     0.00
+ 186           Matmul 4096x14336     LoFi   32.0     212.36      0.16         41.65          10.71    11.64
+ 187           Matmul 4096x14336     LoFi   32.0     211.86      0.16         41.71          10.74    11.67
+ 188                    BinaryNg    HiFi4  110.0      38.38      0.03          0.87           0.69     0.00
+ 189           Matmul 14336x4096    HiFi2   32.0     300.34      0.22         57.16          15.09    16.46
+ 190                    BinaryNg    HiFi4  110.0       9.35      0.01          0.42           0.27     0.01
+ 191                       Slice           110.0      10.30      0.01           NaN            NaN    11.72
+ 192                   LayerNorm    HiFi2    1.0      65.20      0.05          9.31           0.08     0.00
+ 193        InterleavedToSharded            64.0       1.11      0.00           NaN            NaN     0.09
+ 194           Matmul 4096x16032    HiFi2   80.0     235.97      0.17          8.14           5.41     5.86
+ 195        ShardedToInterleaved            63.0       1.77      0.00           NaN            NaN     0.06
+ 196           Matmul 4096x16032    HiFi2   80.0     236.32      0.17          8.14           5.40     5.85
+ 197        ShardedToInterleaved            63.0       1.77      0.00           NaN            NaN     0.06
+ 198           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 199        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 200           Matmul 4096x16032    HiFi2   80.0     236.30      0.17          8.14           5.40     5.85
+ 201        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 202           Matmul 4096x16032    HiFi2   80.0     236.24      0.17          8.14           5.40     5.85
+ 203        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 204           Matmul 4096x16032    HiFi2   80.0     236.36      0.17          8.14           5.40     5.85
+ 205        ShardedToInterleaved            63.0       1.81      0.00           NaN            NaN     0.06
+ 206           Matmul 4096x16032    HiFi2   80.0     236.38      0.17          8.14           5.40     5.85
+ 207        ShardedToInterleaved            63.0       1.71      0.00           NaN            NaN     0.06
+ 208           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 209        ShardedToInterleaved            63.0       1.68      0.00           NaN            NaN     0.06
+ 210                      Concat           110.0      13.42      0.01           NaN            NaN     0.01
+ 211                        Copy           110.0      19.52      0.01           NaN            NaN     0.00
+ 212                    Typecast    HiFi4  110.0      58.11      0.04          0.00           0.00     0.00
+ 213                    BinaryNg    HiFi4  110.0      51.64      0.04          1.10           0.78     0.00
+ 214                    Typecast    HiFi4  110.0      43.23      0.03          0.73           0.46     0.00
+ 215                    BinaryNg    HiFi4  110.0      42.85      0.03          0.56           0.46     0.00
+ 216                    Typecast    HiFi4  110.0      58.86      0.04          0.00           0.00     0.00
+ 217                    BinaryNg    HiFi4  110.0      46.18      0.03          1.10           0.87     0.00
+ 218                    Typecast    HiFi4  110.0      44.03      0.03          0.70           0.45     0.00
+ 219                    BinaryNg    HiFi4  110.0      43.00      0.03          0.56           0.46     0.00
+ 220                    BinaryNg    HiFi4  110.0     116.46      0.09          0.00           0.00     0.00
+ 221                    Typecast    HiFi4  110.0      58.24      0.04          0.00           0.00     0.00
+ 222                    BinaryNg    HiFi4  110.0      47.41      0.03          1.14           0.83     0.00
+ 223                    BinaryNg    HiFi4  110.0      48.28      0.04          1.14           0.82     0.00
+ 224                    Typecast    HiFi4  110.0      36.29      0.03          0.85           0.55     0.00
+ 225                    BinaryNg    HiFi4  110.0      42.66      0.03          1.37           0.93     0.00
+ 226                     Ternary    HiFi4  110.0      85.09      0.06          0.97           0.70     0.00
+ 227                    BinaryNg    HiFi4  110.0      43.56      0.03          2.22           1.82     0.00
+ 228                    Typecast    HiFi4  110.0      37.18      0.03          0.86           0.53     0.00
+ 229               TopkRoutePrep    HiFi4  101.0      43.89      0.03          0.61           0.45     0.00
+ 230            TopkLargeIndices    HiFi4  110.0     555.84      0.41          3.58           3.28     0.00
+ 231             TopkRouteFinish             4.0      21.86      0.02           NaN            NaN     0.00
+ 232                    Untilize    HiFi4    1.0       3.14      0.00          0.00           0.00    33.59
+ 233                      Reduce    HiFi4    1.0       1.54      0.00          1.24           0.01     0.06
+ 234                    BinaryNg    HiFi4  110.0       3.19      0.00          0.02           0.01     0.03
+ 235                    BinaryNg    HiFi4  110.0       3.11      0.00          0.02           0.01     0.03
+ 236                       Unary    HiFi4  110.0       1.12      0.00          0.01           0.00     0.09
+ 237                    BinaryNg    HiFi4  110.0       2.46      0.00          0.00           0.00     0.04
+ 238                    BinaryNg    HiFi4  110.0       1.83      0.00          0.00           0.00     0.06
+ 239                    Typecast    HiFi4    2.0       1.11      0.00          0.00           0.00     0.09
+ 240                    BinaryNg    HiFi4  110.0       2.44      0.00          0.01           0.01     0.04
+ 241                    Typecast    HiFi4    2.0       1.44      0.00          0.43           0.01     0.07
+ 242                    BinaryNg    HiFi4  110.0       1.82      0.00          0.00           0.00     0.06
+ 243                      Reduce    HiFi4    1.0       2.20      0.00          0.00           0.00     0.04
+ 244                    BinaryNg    HiFi4  110.0       6.15      0.00          0.00           0.00     0.02
+ 245                    Typecast    HiFi4    2.0       1.18      0.00          0.00           0.00     0.08
+ 246                    BinaryNg    HiFi4  110.0       1.98      0.00          0.01           0.01     0.05
+ 247                    BinaryNg    HiFi4  110.0       2.24      0.00          0.02           0.01     0.04
+ 248                    BinaryNg    HiFi4  110.0       2.30      0.00          0.01           0.01     0.04
+ 249                    BinaryNg    HiFi4  110.0       1.37      0.00          0.01           0.01     0.07
+ 250                  ManualSeed    HiFi4  110.0      17.53      0.01          0.00           0.00     0.01
+ 251                    Sampling    HiFi4   32.0      16.76      0.01          1.00           0.25     0.01
+ 252                 ReshapeView           110.0       5.39      0.00           NaN            NaN     0.02
+ 253                     Scatter            32.0    1050.86      0.77           NaN            NaN    10.32
+ 254                      Tilize    HiFi4  109.0      94.21      0.07          0.00           0.00     0.00
+ 255                    BinaryNg    HiFi4  110.0     115.80      0.09          0.00           0.00     0.00
+ 256                       Slice           110.0     102.57      0.08           NaN            NaN    47.58
+ 257                    BinaryNg    HiFi4  110.0      84.14      0.06          0.00           0.00     0.00
+ 258                  Embeddings    HiFi4    4.0      33.74      0.02          2.28           0.07     0.00
+ 259                   LayerNorm    HiFi2    4.0      65.23      0.05          9.36           0.31     0.00
+ 260            Matmul 4096x6144    HiFi2   32.0     222.34      0.16         32.96           8.73     9.53
+ 261              NlpCreateHeads           110.0       8.98      0.01           NaN            NaN     0.01
+ 262        RotaryEmbeddingLlama    HiFi4  110.0      13.27      0.01          5.42           3.24     0.01
+ 263        RotaryEmbeddingLlama    HiFi4  110.0       8.70      0.01          1.82           1.24     0.01
+ 264                    Typecast    HiFi4  110.0       2.58      0.00          0.60           0.25     0.04
+ 265                    Typecast    HiFi4  110.0       1.92      0.00          0.61           0.33     0.05
+ 266              PagedFillCache            32.0       3.77      0.00           NaN            NaN     0.03
+ 267              PagedFillCache            32.0       3.45      0.00           NaN            NaN     0.03
+ 268                    Typecast    HiFi4  110.0       5.03      0.00          0.72           0.50     0.02
+ 269                        SDPA    HiFi4   64.0      31.99      0.02          8.93           4.69     4.75
+ 270              NLPConcatHeads           110.0       3.65      0.00           NaN            NaN     0.03
+ 271            Matmul 4096x4096    HiFi2   32.0      84.47      0.06         59.36          15.33    16.72
+ 272                    BinaryNg    HiFi4  110.0       8.11      0.01          0.46           0.31     0.01
+ 273                   LayerNorm    HiFi2    4.0      65.19      0.05          9.32           0.31     0.00
+ 274           Matmul 4096x14336     LoFi   32.0     211.63      0.16         41.72          10.75    11.68
+ 275           Matmul 4096x14336     LoFi   32.0     211.77      0.16         41.64          10.74    11.67
+ 276                    BinaryNg    HiFi4  110.0      38.72      0.03          0.87           0.69     0.00
+ 277           Matmul 14336x4096    HiFi2   32.0     303.25      0.22         57.08          14.95    16.30
+ 278                    BinaryNg    HiFi4  110.0       9.36      0.01          0.41           0.27     0.01
+ 279                       Slice           110.0      10.42      0.01           NaN            NaN    11.58
+ 280                   LayerNorm    HiFi2    1.0      65.45      0.05          9.28           0.08     0.00
+ 281        InterleavedToSharded            64.0       1.11      0.00           NaN            NaN     0.09
+ 282           Matmul 4096x16032    HiFi2   80.0     236.13      0.17          8.14           5.41     5.85
+ 283        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 284           Matmul 4096x16032    HiFi2   80.0     236.47      0.17          8.14           5.40     5.84
+ 285        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 286           Matmul 4096x16032    HiFi2   80.0     236.50      0.17          8.14           5.40     5.84
+ 287        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+ 288           Matmul 4096x16032    HiFi2   80.0     236.27      0.17          8.14           5.40     5.85
+ 289        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 290           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 291        ShardedToInterleaved            63.0       1.71      0.00           NaN            NaN     0.06
+ 292           Matmul 4096x16032    HiFi2   80.0     236.30      0.17          8.14           5.40     5.85
+ 293        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 294           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 295        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+ 296           Matmul 4096x16032    HiFi2   80.0     236.23      0.17          8.14           5.41     5.85
+ 297        ShardedToInterleaved            63.0       1.77      0.00           NaN            NaN     0.06
+ 298                      Concat           110.0      13.21      0.01           NaN            NaN     0.01
+ 299                        Copy           110.0      19.96      0.01           NaN            NaN     0.00
+ 300                    Typecast    HiFi4  110.0      37.02      0.03          0.85           0.53     0.00
+ 301               TopkRoutePrep    HiFi4  101.0      44.67      0.03          0.60           0.44     0.00
+ 302            TopkLargeIndices    HiFi4  110.0     556.64      0.41          3.59           3.28     0.00
+ 303             TopkRouteFinish             4.0      20.94      0.02           NaN            NaN     0.00
+ 304                    Untilize    HiFi4    1.0       3.09      0.00          0.00           0.00    34.14
+ 305                      Reduce    HiFi4    1.0       1.53      0.00          1.23           0.01     0.06
+ 306                    BinaryNg    HiFi4  110.0       3.13      0.00          0.02           0.01     0.03
+ 307                    BinaryNg    HiFi4  110.0       3.09      0.00          0.02           0.01     0.03
+ 308                       Unary    HiFi4  110.0       2.15      0.00          0.01           0.00     0.05
+ 309                    BinaryNg    HiFi4  110.0       3.51      0.00          0.00           0.00     0.03
+ 310                    BinaryNg    HiFi4  110.0       2.96      0.00          0.00           0.00     0.03
+ 311                    Typecast    HiFi4    2.0       2.06      0.00          0.00           0.00     0.05
+ 312                    BinaryNg    HiFi4  110.0       3.61      0.00          0.01           0.01     0.03
+ 313                    Typecast    HiFi4    2.0       2.36      0.00          0.45           0.00     0.04
+ 314                    BinaryNg    HiFi4  110.0       2.96      0.00          0.00           0.00     0.03
+ 315                      Reduce    HiFi4    1.0       2.18      0.00          0.00           0.00     0.05
+ 316                    BinaryNg    HiFi4  110.0       7.09      0.01          0.00           0.00     0.01
+ 317                    Typecast    HiFi4    2.0       1.17      0.00          0.00           0.00     0.08
+ 318                    BinaryNg    HiFi4  110.0       1.99      0.00          0.01           0.01     0.05
+ 319                    BinaryNg    HiFi4  110.0       2.28      0.00          0.02           0.01     0.04
+ 320                    BinaryNg    HiFi4  110.0       2.22      0.00          0.02           0.01     0.04
+ 321                    BinaryNg    HiFi4  110.0       1.38      0.00          0.01           0.01     0.07
+ 322                  ManualSeed    HiFi4  110.0      17.76      0.01          0.00           0.00     0.01
+ 323                    Sampling    HiFi4   32.0      16.85      0.01          1.01           0.25     0.01
+ 324                  Embeddings    HiFi4    4.0      33.67      0.02          2.29           0.08     0.00
+ 325                   LayerNorm    HiFi2    4.0      65.07      0.05          9.34           0.31     0.00
+ 326            Matmul 4096x6144    HiFi2   32.0     221.23      0.16         33.11           8.78     9.57
+ 327              NlpCreateHeads           110.0       9.13      0.01           NaN            NaN     0.01
+ 328        RotaryEmbeddingLlama    HiFi4  110.0      13.26      0.01          5.34           3.24     0.01
+ 329        RotaryEmbeddingLlama    HiFi4  110.0       8.42      0.01          1.84           1.28     0.01
+ 330                    Typecast    HiFi4  110.0       2.40      0.00          0.61           0.26     0.04
+ 331                    Typecast    HiFi4  110.0       1.97      0.00          0.61           0.32     0.05
+ 332              PagedFillCache            32.0       3.76      0.00           NaN            NaN     0.03
+ 333              PagedFillCache            32.0       3.43      0.00           NaN            NaN     0.03
+ 334                    Typecast    HiFi4  110.0       5.07      0.00          0.71           0.50     0.02
+ 335                        SDPA    HiFi4   64.0      32.08      0.02          8.93           4.68     4.73
+ 336              NLPConcatHeads           110.0       3.85      0.00           NaN            NaN     0.03
+ 337            Matmul 4096x4096    HiFi2   32.0      84.36      0.06         59.39          15.35    16.74
+ 338                    BinaryNg    HiFi4  110.0       8.28      0.01          0.45           0.31     0.01
+ 339                   LayerNorm    HiFi2    4.0      64.97      0.05          9.36           0.31     0.00
+ 340           Matmul 4096x14336     LoFi   32.0     212.01      0.16         41.66          10.73    11.66
+ 341           Matmul 4096x14336     LoFi   32.0     211.76      0.16         41.69          10.74    11.67
+ 342                    BinaryNg    HiFi4  110.0      38.70      0.03          0.87           0.69     0.00
+ 343           Matmul 14336x4096    HiFi2   32.0     300.21      0.22         57.17          15.10    16.46
+ 344                    BinaryNg    HiFi4  110.0       9.32      0.01          0.42           0.27     0.01
+ 345                       Slice           110.0      10.15      0.01           NaN            NaN    11.89
+ 346                   LayerNorm    HiFi2    1.0      65.07      0.05          9.33           0.08     0.00
+ 347        InterleavedToSharded            64.0       1.11      0.00           NaN            NaN     0.09
+ 348           Matmul 4096x16032    HiFi2   80.0     235.98      0.17          8.14           5.41     5.86
+ 349        ShardedToInterleaved            63.0       1.31      0.00           NaN            NaN     0.08
+ 350           Matmul 4096x16032    HiFi2   80.0     236.33      0.17          8.14           5.40     5.85
+ 351        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 352           Matmul 4096x16032    HiFi2   80.0     236.45      0.17          8.14           5.40     5.84
+ 353        ShardedToInterleaved            63.0       1.81      0.00           NaN            NaN     0.06
+ 354           Matmul 4096x16032    HiFi2   80.0     236.30      0.17          8.14           5.40     5.85
+ 355        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 356           Matmul 4096x16032    HiFi2   80.0     236.36      0.17          8.14           5.40     5.85
+ 357        ShardedToInterleaved            63.0       1.72      0.00           NaN            NaN     0.06
+ 358           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 359        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 360           Matmul 4096x16032    HiFi2   80.0     236.22      0.17          8.14           5.41     5.85
+ 361        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+ 362           Matmul 4096x16032    HiFi2   80.0     236.47      0.17          8.14           5.40     5.84
+ 363        ShardedToInterleaved            63.0       1.67      0.00           NaN            NaN     0.06
+ 364                      Concat           110.0      13.44      0.01           NaN            NaN     0.01
+ 365                        Copy           110.0      20.31      0.01           NaN            NaN     0.00
+ 366                    Typecast    HiFi4  110.0      37.29      0.03          0.86           0.53     0.00
+ 367               TopkRoutePrep    HiFi4  101.0      44.33      0.03          0.60           0.45     0.00
+ 368            TopkLargeIndices    HiFi4  110.0     554.12      0.41          3.59           3.29     0.00
+ 369             TopkRouteFinish             4.0      20.98      0.02           NaN            NaN     0.00
+ 370                    Untilize    HiFi4    1.0       3.10      0.00          0.00           0.00    34.08
+ 371                      Reduce    HiFi4    1.0       1.52      0.00          1.24           0.01     0.07
+ 372                    BinaryNg    HiFi4  110.0       3.19      0.00          0.02           0.01     0.03
+ 373                    BinaryNg    HiFi4  110.0       3.12      0.00          0.02           0.01     0.03
+ 374                       Unary    HiFi4  110.0       2.16      0.00          0.01           0.00     0.05
+ 375                    BinaryNg    HiFi4  110.0       3.52      0.00          0.00           0.00     0.03
+ 376                    BinaryNg    HiFi4  110.0       2.92      0.00          0.00           0.00     0.03
+ 377                    Typecast    HiFi4    2.0       2.06      0.00          0.00           0.00     0.05
+ 378                    BinaryNg    HiFi4  110.0       3.60      0.00          0.01           0.01     0.03
+ 379                    Typecast    HiFi4    2.0       2.36      0.00          0.45           0.00     0.04
+ 380                    BinaryNg    HiFi4  110.0       2.83      0.00          0.00           0.00     0.04
+ 381                      Reduce    HiFi4    1.0       2.20      0.00          0.00           0.00     0.04
+ 382                    BinaryNg    HiFi4  110.0       7.06      0.01          0.00           0.00     0.01
+ 383                    Typecast    HiFi4    2.0       1.16      0.00          0.00           0.00     0.09
+ 384                    BinaryNg    HiFi4  110.0       1.98      0.00          0.01           0.01     0.05
+ 385                    BinaryNg    HiFi4  110.0       2.24      0.00          0.02           0.01     0.04
+ 386                    BinaryNg    HiFi4  110.0       2.23      0.00          0.02           0.01     0.04
+ 387                    BinaryNg    HiFi4  110.0       1.38      0.00          0.01           0.01     0.07
+ 388                  ManualSeed    HiFi4  110.0      17.11      0.01          0.00           0.00     0.01
+ 389                    Sampling    HiFi4   32.0      17.07      0.01          1.00           0.25     0.01
+ 390                  Embeddings    HiFi4    4.0      33.72      0.02          2.28           0.07     0.00
+ 391                   LayerNorm    HiFi2    4.0      65.07      0.05          9.34           0.31     0.00
+ 392            Matmul 4096x6144    HiFi2   32.0     221.49      0.16         33.10           8.77     9.56
+ 393              NlpCreateHeads           110.0       9.08      0.01           NaN            NaN     0.01
+ 394        RotaryEmbeddingLlama    HiFi4  110.0      13.41      0.01          5.40           3.21     0.01
+ 395        RotaryEmbeddingLlama    HiFi4  110.0       8.41      0.01          1.83           1.28     0.01
+ 396                    Typecast    HiFi4  110.0       2.57      0.00          0.61           0.25     0.04
+ 397                    Typecast    HiFi4  110.0       2.57      0.00          0.63           0.25     0.04
+ 398              PagedFillCache            32.0       3.58      0.00           NaN            NaN     0.03
+ 399              PagedFillCache            32.0       3.50      0.00           NaN            NaN     0.03
+ 400                    Typecast    HiFi4  110.0       5.07      0.00          0.71           0.50     0.02
+ 401                        SDPA    HiFi4   64.0      32.06      0.02          8.94           4.68     4.74
+ 402              NLPConcatHeads           110.0       3.82      0.00           NaN            NaN     0.03
+ 403            Matmul 4096x4096    HiFi2   32.0      84.93      0.06         59.39          15.24    16.63
+ 404                    BinaryNg    HiFi4  110.0       8.22      0.01          0.45           0.31     0.01
+ 405                   LayerNorm    HiFi2    4.0      65.26      0.05          9.31           0.31     0.00
+ 406           Matmul 4096x14336     LoFi   32.0     211.78      0.16         41.63          10.74    11.67
+ 407           Matmul 4096x14336     LoFi   32.0     211.60      0.16         41.70          10.75    11.68
+ 408                    BinaryNg    HiFi4  110.0      38.54      0.03          0.88           0.69     0.00
+ 409           Matmul 14336x4096    HiFi2   32.0     300.40      0.22         57.16          15.09    16.45
+ 410                    BinaryNg    HiFi4  110.0       9.44      0.01          0.41           0.27     0.01
+ 411                       Slice           110.0      10.30      0.01           NaN            NaN    11.72
+ 412                   LayerNorm    HiFi2    1.0      65.36      0.05          9.29           0.08     0.00
+ 413        InterleavedToSharded            64.0       1.15      0.00           NaN            NaN     0.09
+ 414           Matmul 4096x16032    HiFi2   80.0     235.75      0.17          8.14           5.42     5.86
+ 415        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 416           Matmul 4096x16032    HiFi2   80.0     236.35      0.17          8.14           5.40     5.85
+ 417        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+ 418           Matmul 4096x16032    HiFi2   80.0     236.21      0.17          8.14           5.41     5.85
+ 419        ShardedToInterleaved            63.0       1.83      0.00           NaN            NaN     0.06
+ 420           Matmul 4096x16032    HiFi2   80.0     236.34      0.17          8.14           5.40     5.85
+ 421        ShardedToInterleaved            63.0       1.82      0.00           NaN            NaN     0.06
+ 422           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 423        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 424           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 425        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 426           Matmul 4096x16032    HiFi2   80.0     236.40      0.17          8.14           5.40     5.85
+ 427        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 428           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+ 429        ShardedToInterleaved            63.0       1.70      0.00           NaN            NaN     0.06
+ 430                      Concat           110.0      13.47      0.01           NaN            NaN     0.01
+ 431                        Copy           110.0      19.77      0.01           NaN            NaN     0.00
+ 432             UntilizeCodegen    HiFi4  110.0      35.41      0.03          1.07           0.56     0.00
+ 433                      ArgMax           110.0     501.23      0.37           NaN            NaN     0.00
+ 434                  Embeddings    HiFi4    4.0      33.71      0.02          2.29           0.07     0.00
+ 435                   LayerNorm    HiFi2    4.0      64.99      0.05          9.35           0.31     0.00
+ 436            Matmul 4096x6144    HiFi2   32.0     221.26      0.16         33.12           8.78     9.57
+ 437              NlpCreateHeads           110.0       8.94      0.01           NaN            NaN     0.01
+ 438        RotaryEmbeddingLlama    HiFi4  110.0      12.36      0.01          5.40           3.48     0.01
+ 439        RotaryEmbeddingLlama    HiFi4  110.0       8.56      0.01          1.75           1.26     0.01
+ 440                    Typecast    HiFi4  110.0       1.97      0.00          0.61           0.32     0.05
+ 441                    Typecast    HiFi4  110.0       1.93      0.00          0.60           0.33     0.05
+ 442              PagedFillCache            32.0       3.76      0.00           NaN            NaN     0.03
+ 443              PagedFillCache            32.0       3.81      0.00           NaN            NaN     0.03
+ 444                    Typecast    HiFi4  110.0       4.89      0.00          0.72           0.52     0.02
+ 445                        SDPA    HiFi4   64.0      32.06      0.02          8.93           4.68     4.74
+ 446              NLPConcatHeads           110.0       3.72      0.00           NaN            NaN     0.03
+ 447            Matmul 4096x4096    HiFi2   32.0      84.33      0.06         59.42          15.35    16.75
+ 448                    BinaryNg    HiFi4  110.0       8.32      0.01          0.46           0.30     0.01
+ 449                   LayerNorm    HiFi2    4.0      65.20      0.05          9.32           0.31     0.00
+ 450           Matmul 4096x14336     LoFi   32.0     211.89      0.16         41.60          10.73    11.66
+ 451           Matmul 4096x14336     LoFi   32.0     212.01      0.16         41.76          10.73    11.66
+ 452                    BinaryNg    HiFi4  110.0      38.44      0.03          0.88           0.69     0.00
+ 453           Matmul 14336x4096    HiFi2   32.0     300.15      0.22         57.16          15.10    16.47
+ 454                    BinaryNg    HiFi4  110.0       9.26      0.01          0.41           0.27     0.01
+ 455                       Slice           110.0      10.24      0.01           NaN            NaN    11.78
+ 456                   LayerNorm    HiFi2    1.0      65.14      0.05          9.33           0.08     0.00
+ 457        InterleavedToSharded            64.0       1.14      0.00           NaN            NaN     0.09
+ 458           Matmul 4096x16032    HiFi2   80.0     235.95      0.17          8.14           5.41     5.86
+ 459        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 460           Matmul 4096x16032    HiFi2   80.0     236.30      0.17          8.14           5.40     5.85
+ 461        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 462           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 463        ShardedToInterleaved            63.0       1.83      0.00           NaN            NaN     0.06
+ 464           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 465        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 466           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 467        ShardedToInterleaved            63.0       1.83      0.00           NaN            NaN     0.06
+ 468           Matmul 4096x16032    HiFi2   80.0     236.30      0.17          8.14           5.40     5.85
+ 469        ShardedToInterleaved            63.0       1.79      0.00           NaN            NaN     0.06
+ 470           Matmul 4096x16032    HiFi2   80.0     236.35      0.17          8.14           5.40     5.85
+ 471        ShardedToInterleaved            63.0       1.81      0.00           NaN            NaN     0.06
+ 472           Matmul 4096x16032    HiFi2   80.0     236.22      0.17          8.14           5.41     5.85
+ 473        ShardedToInterleaved            63.0       1.77      0.00           NaN            NaN     0.06
+ 474                      Concat           110.0      13.16      0.01           NaN            NaN     0.01
+ 475                        Copy           110.0      20.00      0.01           NaN            NaN     0.00
+ 476             UntilizeCodegen    HiFi4  110.0      35.88      0.03          1.08           0.55     0.00
+ 477                  Embeddings    HiFi4   32.0     175.44      0.13          0.84           0.12     0.00
+ 478                   LayerNorm    HiFi2   32.0      75.61      0.06          8.31           2.14     0.00
+ 479     MinimalMatmul 4096x6144    HiFi2   80.0     360.12      0.27         82.47          54.13     0.00
+ 480              NlpCreateHeads           110.0      59.89      0.04           NaN            NaN     0.00
+ 481        RotaryEmbeddingLlama    HiFi4  110.0      79.57      0.06          5.44           4.32     0.00
+ 482        RotaryEmbeddingLlama    HiFi4  110.0      17.30      0.01          6.21           4.97     0.01
+ 483                    Typecast    HiFi4  110.0       8.16      0.01          0.77           0.62     0.01
+ 484                    Typecast    HiFi4  110.0       8.14      0.01          0.78           0.62     0.01
+ 485              PagedFillCache           110.0      14.50      0.01           NaN            NaN     0.01
+ 486              PagedFillCache           110.0      14.02      0.01           NaN            NaN     0.01
+ 487                    Typecast    HiFi4  110.0      30.04      0.02          0.78           0.67     0.00
+ 488                        SDPA    HiFi4   64.0     634.54      0.47         19.91          10.60    15.30
+ 489              NLPConcatHeads           110.0      21.57      0.02           NaN            NaN     0.00
+ 490            Matmul 4096x4096    HiFi2   64.0     233.10      0.17         84.81          44.43    48.47
+ 491                    BinaryNg    HiFi4  110.0      48.24      0.04          0.50           0.42     0.00
+ 492                   LayerNorm    HiFi2   32.0      75.26      0.06          8.45           2.15     0.00
+ 493           Matmul 4096x14336     LoFi   64.0     510.24      0.38         71.25          35.66    38.75
+ 494           Matmul 4096x14336     LoFi   64.0     509.64      0.38         71.20          35.70    38.79
+ 495                    BinaryNg    HiFi4  110.0     228.82      0.17          1.02           0.93     0.00
+ 496    MinimalMatmul 14336x4096    HiFi2   64.0     795.87      0.59         85.96          45.59     0.00
+ 497                    BinaryNg    HiFi4  110.0      48.82      0.04          0.51           0.41     0.00
+ 498                       Slice           110.0      10.27      0.01           NaN            NaN    11.75
+ 499                   LayerNorm    HiFi2    1.0      65.38      0.05          9.29           0.08     0.00
+ 500        InterleavedToSharded            64.0       1.11      0.00           NaN            NaN     0.09
+ 501           Matmul 4096x16032    HiFi2   80.0     236.24      0.17          8.13           5.40     5.85
+ 502        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+ 503           Matmul 4096x16032    HiFi2   80.0     236.39      0.17          8.14           5.40     5.85
+ 504        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 505           Matmul 4096x16032    HiFi2   80.0     236.62      0.17          8.14           5.40     5.84
+ 506        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 507           Matmul 4096x16032    HiFi2   80.0     236.23      0.17          8.14           5.40     5.85
+ 508        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 509           Matmul 4096x16032    HiFi2   80.0     236.32      0.17          8.14           5.40     5.85
+ 510        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 511           Matmul 4096x16032    HiFi2   80.0     236.27      0.17          8.14           5.40     5.85
+ 512        ShardedToInterleaved            63.0       1.77      0.00           NaN            NaN     0.06
+ 513           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+ 514        ShardedToInterleaved            63.0       1.70      0.00           NaN            NaN     0.06
+ 515           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 516        ShardedToInterleaved            63.0       1.70      0.00           NaN            NaN     0.06
+ 517                      Concat           110.0      13.31      0.01           NaN            NaN     0.01
+ 518                        Copy           110.0      19.88      0.01           NaN            NaN     0.00
+ 519             UntilizeCodegen    HiFi4  110.0      35.09      0.03          1.09           0.56     0.00
+ 520                      ArgMax           110.0     520.60      0.38           NaN            NaN     0.00
+ 521                  Embeddings    HiFi4   32.0     176.33      0.13          0.84           0.11     0.00
+ 522                   LayerNorm    HiFi2   32.0      74.47      0.05          8.42           2.18     0.00
+ 523     MinimalMatmul 4096x6144    HiFi2   80.0     359.78      0.26         82.51          54.18     0.00
+ 524              NlpCreateHeads           110.0      58.81      0.04           NaN            NaN     0.00
+ 525        RotaryEmbeddingLlama    HiFi4  110.0      78.18      0.06          5.56           4.40     0.00
+ 526        RotaryEmbeddingLlama    HiFi4  110.0      17.92      0.01          6.27           4.80     0.01
+ 527                    Typecast    HiFi4  110.0       8.66      0.01          0.78           0.58     0.01
+ 528                    Typecast    HiFi4  110.0       8.66      0.01          0.79           0.58     0.01
+ 529              PagedFillCache           110.0      14.31      0.01           NaN            NaN     0.01
+ 530              PagedFillCache           110.0      14.61      0.01           NaN            NaN     0.01
+ 531                    Typecast    HiFi4  110.0      29.59      0.02          0.79           0.68     0.00
+ 532                        SDPA    HiFi4   64.0     634.76      0.47         19.91          10.59    15.30
+ 533              NLPConcatHeads           110.0      21.94      0.02           NaN            NaN     0.00
+ 534            Matmul 4096x4096    HiFi2   64.0     232.88      0.17         84.88          44.47    48.51
+ 535                    BinaryNg    HiFi4  110.0      48.17      0.04          0.50           0.42     0.00
+ 536                   LayerNorm    HiFi2   32.0      73.52      0.05          8.54           2.20     0.00
+ 537           Matmul 4096x14336     LoFi   64.0     511.02      0.38         71.30          35.60    38.69
+ 538           Matmul 4096x14336     LoFi   64.0     509.49      0.38         71.42          35.71    38.81
+ 539                    BinaryNg    HiFi4  110.0     228.42      0.17          1.02           0.93     0.00
+ 540    MinimalMatmul 14336x4096    HiFi2   64.0     796.26      0.59         85.93          45.57     0.00
+ 541                    BinaryNg    HiFi4  110.0      48.48      0.04          0.51           0.42     0.00
+ 542                       Slice           110.0      10.37      0.01           NaN            NaN    11.64
+ 543                   LayerNorm    HiFi2    1.0      65.41      0.05          9.28           0.08     0.00
+ 544        InterleavedToSharded            64.0       1.54      0.00           NaN            NaN     0.06
+ 545           Matmul 4096x16032    HiFi2   80.0     236.37      0.17          8.14           5.40     5.85
+ 546        ShardedToInterleaved            63.0       1.84      0.00           NaN            NaN     0.05
+ 547           Matmul 4096x16032    HiFi2   80.0     236.59      0.17          8.14           5.40     5.84
+ 548        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 549           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 550        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+ 551           Matmul 4096x16032    HiFi2   80.0     236.20      0.17          8.14           5.41     5.85
+ 552        ShardedToInterleaved            63.0       1.78      0.00           NaN            NaN     0.06
+ 553           Matmul 4096x16032    HiFi2   80.0     236.54      0.17          8.14           5.40     5.84
+ 554        ShardedToInterleaved            63.0       1.79      0.00           NaN            NaN     0.06
+ 555           Matmul 4096x16032    HiFi2   80.0     236.35      0.17          8.14           5.40     5.85
+ 556        ShardedToInterleaved            63.0       1.79      0.00           NaN            NaN     0.06
+ 557           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 558        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 559           Matmul 4096x16032    HiFi2   80.0     236.21      0.17          8.14           5.41     5.85
+ 560        ShardedToInterleaved            63.0       1.72      0.00           NaN            NaN     0.06
+ 561                      Concat           110.0      13.21      0.01           NaN            NaN     0.01
+ 562                        Copy           110.0      19.87      0.01           NaN            NaN     0.00
+ 563             UntilizeCodegen    HiFi4  110.0      35.74      0.03          1.06           0.55     0.00
+ 564                  Embeddings    HiFi4   64.0     339.00      0.25          0.55           0.12     0.00
+ 565                       Slice           110.0       3.20      0.00           NaN            NaN    61.93
+ 566                       Slice           110.0       3.29      0.00           NaN            NaN    60.26
+ 567                   LayerNorm    HiFi2   64.0     106.22      0.08          6.07           3.05     0.00
+ 568     MinimalMatmul 4096x6144    HiFi2   80.0     627.04      0.46         83.09          54.31     0.00
+ 569              NlpCreateHeads           110.0     116.94      0.09           NaN            NaN     0.00
+ 570        RotaryEmbeddingLlama    HiFi4  110.0     154.83      0.11          6.84           4.44     0.00
+ 571        RotaryEmbeddingLlama    HiFi4  110.0      28.16      0.02          8.53           6.11     0.00
+ 572                    Typecast    HiFi4  110.0      15.35      0.01          0.78           0.66     0.01
+ 573                    Typecast    HiFi4  110.0      15.90      0.01          0.77           0.64     0.01
+ 574              PagedFillCache           110.0      11.49      0.01           NaN            NaN     0.01
+ 575              PagedFillCache           110.0      11.64      0.01           NaN            NaN     0.01
+ 576                    Typecast    HiFi4  110.0      60.98      0.04          0.79           0.66     0.00
+ 577                        SDPA    HiFi4   64.0    2010.22      1.48         23.67          12.60    19.32
+ 578              NLPConcatHeads           110.0      42.81      0.03           NaN            NaN     0.00
+ 579            Matmul 4096x4096    HiFi2   64.0     463.04      0.34         84.63          44.73    48.80
+ 580                    BinaryNg    HiFi4  110.0      96.10      0.07          0.51           0.42     0.00
+ 581                   LayerNorm    HiFi2   64.0     104.18      0.08          6.05           3.11     0.00
+ 582           Matmul 4096x14336     LoFi   64.0    1015.76      0.75         69.32          35.82    38.93
+ 583           Matmul 4096x14336     LoFi   64.0    1014.13      0.75         69.39          35.88    38.99
+ 584                    BinaryNg    HiFi4  110.0     452.37      0.33          1.03           0.94     0.00
+ 585    MinimalMatmul 14336x4096    HiFi2   64.0    1580.34      1.16         86.37          45.90     0.00
+ 586                    BinaryNg    HiFi4  110.0      96.58      0.07          0.51           0.42     0.00
+ 587                       Slice           110.0      10.39      0.01           NaN            NaN    11.61
+ 588                   LayerNorm    HiFi2    1.0      64.98      0.05          9.35           0.08     0.00
+ 589        InterleavedToSharded            64.0       1.12      0.00           NaN            NaN     0.09
+ 590           Matmul 4096x16032    HiFi2   80.0     235.94      0.17          8.14           5.41     5.86
+ 591        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 592           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 593        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 594           Matmul 4096x16032    HiFi2   80.0     236.27      0.17          8.14           5.40     5.85
+ 595        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 596           Matmul 4096x16032    HiFi2   80.0     236.31      0.17          8.14           5.40     5.85
+ 597        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 598           Matmul 4096x16032    HiFi2   80.0     236.23      0.17          8.14           5.41     5.85
+ 599        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 600           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 601        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 602           Matmul 4096x16032    HiFi2   80.0     236.32      0.17          8.14           5.40     5.85
+ 603        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 604           Matmul 4096x16032    HiFi2   80.0     236.21      0.17          8.14           5.41     5.85
+ 605        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 606                      Concat           110.0      13.25      0.01           NaN            NaN     0.01
+ 607                        Copy           110.0      20.02      0.01           NaN            NaN     0.00
+ 608             UntilizeCodegen    HiFi4  110.0      34.93      0.03          1.11           0.57     0.00
+ 609                      ArgMax           110.0     501.87      0.37           NaN            NaN     0.00
+ 610                  Embeddings    HiFi4   64.0     338.96      0.25          0.55           0.12     0.00
+ 611                       Slice           110.0       3.70      0.00           NaN            NaN    53.60
+ 612                       Slice           110.0       3.92      0.00           NaN            NaN    50.57
+ 613                   LayerNorm    HiFi2   64.0     106.62      0.08          6.06           3.04     0.00
+ 614     MinimalMatmul 4096x6144    HiFi2   80.0     625.68      0.46         83.18          54.43     0.00
+ 615              NlpCreateHeads           110.0     114.59      0.08           NaN            NaN     0.00
+ 616        RotaryEmbeddingLlama    HiFi4  110.0     153.60      0.11          6.86           4.48     0.00
+ 617        RotaryEmbeddingLlama    HiFi4  110.0      27.67      0.02          8.56           6.21     0.00
+ 618                    Typecast    HiFi4  110.0      15.84      0.01          0.76           0.64     0.01
+ 619                    Typecast    HiFi4  110.0      15.71      0.01          0.78           0.64     0.01
+ 620              PagedFillCache           110.0      11.97      0.01           NaN            NaN     0.01
+ 621              PagedFillCache           110.0      11.63      0.01           NaN            NaN     0.01
+ 622                    Typecast    HiFi4  110.0      59.06      0.04          0.78           0.68     0.00
+ 623                        SDPA    HiFi4   64.0    2010.11      1.48         23.67          12.60    19.32
+ 624              NLPConcatHeads           110.0      42.36      0.03           NaN            NaN     0.00
+ 625            Matmul 4096x4096    HiFi2   64.0     463.04      0.34         84.70          44.73    48.80
+ 626                    BinaryNg    HiFi4  110.0      94.62      0.07          0.50           0.43     0.00
+ 627                   LayerNorm    HiFi2   64.0     103.00      0.08          6.19           3.15     0.00
+ 628           Matmul 4096x14336     LoFi   64.0    1016.09      0.75         69.38          35.81    38.92
+ 629           Matmul 4096x14336     LoFi   64.0    1013.54      0.75         69.50          35.90    39.01
+ 630                    BinaryNg    HiFi4  110.0     452.56      0.33          1.03           0.94     0.00
+ 631    MinimalMatmul 14336x4096    HiFi2   64.0    1581.06      1.16         86.35          45.88     0.00
+ 632                    BinaryNg    HiFi4  110.0      97.11      0.07          0.51           0.42     0.00
+ 633                       Slice           110.0      10.32      0.01           NaN            NaN    11.70
+ 634                   LayerNorm    HiFi2    1.0      65.60      0.05          9.26           0.08     0.00
+ 635        InterleavedToSharded            64.0       1.53      0.00           NaN            NaN     0.07
+ 636           Matmul 4096x16032    HiFi2   80.0     236.33      0.17          8.14           5.40     5.85
+ 637        ShardedToInterleaved            63.0       1.83      0.00           NaN            NaN     0.06
+ 638           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 639        ShardedToInterleaved            63.0       1.79      0.00           NaN            NaN     0.06
+ 640           Matmul 4096x16032    HiFi2   80.0     236.20      0.17          8.14           5.41     5.85
+ 641        ShardedToInterleaved            63.0       1.77      0.00           NaN            NaN     0.06
+ 642           Matmul 4096x16032    HiFi2   80.0     236.52      0.17          8.14           5.40     5.84
+ 643        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 644           Matmul 4096x16032    HiFi2   80.0     236.22      0.17          8.14           5.41     5.85
+ 645        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 646           Matmul 4096x16032    HiFi2   80.0     236.17      0.17          8.14           5.41     5.85
+ 647        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 648           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 649        ShardedToInterleaved            63.0       1.66      0.00           NaN            NaN     0.06
+ 650           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+ 651        ShardedToInterleaved            63.0       1.70      0.00           NaN            NaN     0.06
+ 652                      Concat           110.0      13.28      0.01           NaN            NaN     0.01
+ 653                        Copy           110.0      20.14      0.01           NaN            NaN     0.00
+ 654             UntilizeCodegen    HiFi4  110.0      35.85      0.03          1.10           0.55     0.00
+ 655                  Embeddings    HiFi4  110.0     667.64      0.49          0.40           0.12     0.00
+ 656                       Slice           110.0       6.33      0.00           NaN            NaN    56.50
+ 657                       Slice           110.0       6.01      0.00           NaN            NaN    59.53
+ 658                   LayerNorm    HiFi2  110.0     195.84      0.14          4.66           3.31     0.00
+ 659     MinimalMatmul 4096x6144    HiFi2   80.0    1159.14      0.85         83.00          54.58     0.00
+ 660              NlpCreateHeads           110.0     243.24      0.18           NaN            NaN     0.00
+ 661        RotaryEmbeddingLlama    HiFi4  110.0     311.63      0.23          7.25           4.41     0.00
+ 662        RotaryEmbeddingLlama    HiFi4  110.0      82.67      0.06          6.61           4.16     0.00
+ 663                    Typecast    HiFi4  110.0      29.41      0.02          0.78           0.69     0.00
+ 664                    Typecast    HiFi4  110.0      30.88      0.02          0.76           0.65     0.00
+ 665              PagedFillCache           110.0      22.76      0.02           NaN            NaN     0.00
+ 666              PagedFillCache           110.0      23.64      0.02           NaN            NaN     0.00
+ 667                    Typecast    HiFi4  110.0     118.02      0.09          0.78           0.69     0.00
+ 668                        SDPA    HiFi4   64.0    7553.11      5.56         23.73          12.65    20.57
+ 669              NLPConcatHeads           110.0      95.86      0.07           NaN            NaN     0.00
+ 670            Matmul 4096x4096    HiFi2   64.0     918.94      0.68         84.73          45.08    49.18
+ 671                    BinaryNg    HiFi4  110.0     187.93      0.14          0.51           0.43     0.00
+ 672                   LayerNorm    HiFi2  110.0     193.40      0.14          4.70           3.35     0.00
+ 673           Matmul 4096x14336     LoFi   64.0    2179.90      1.61         63.64          33.39    36.28
+ 674           Matmul 4096x14336     LoFi   64.0    2179.11      1.60         63.65          33.40    36.29
+ 675                    BinaryNg    HiFi4  110.0     900.74      0.66          1.03           0.94     0.00
+ 676    MinimalMatmul 14336x4096    HiFi2   64.0    3143.70      2.32         86.69          46.15     0.00
+ 677                    BinaryNg    HiFi4  110.0     189.62      0.14          0.51           0.43     0.00
+ 678                       Slice           110.0      10.31      0.01           NaN            NaN    11.71
+ 679                   LayerNorm    HiFi2    1.0      64.92      0.05          9.36           0.08     0.00
+ 680        InterleavedToSharded            64.0       1.17      0.00           NaN            NaN     0.08
+ 681           Matmul 4096x16032    HiFi2   80.0     235.94      0.17          8.14           5.41     5.86
+ 682        ShardedToInterleaved            63.0       1.76      0.00           NaN            NaN     0.06
+ 683           Matmul 4096x16032    HiFi2   80.0     236.25      0.17          8.14           5.40     5.85
+ 684        ShardedToInterleaved            63.0       1.72      0.00           NaN            NaN     0.06
+ 685           Matmul 4096x16032    HiFi2   80.0     236.50      0.17          8.14           5.40     5.84
+ 686        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 687           Matmul 4096x16032    HiFi2   80.0     236.21      0.17          8.14           5.41     5.85
+ 688        ShardedToInterleaved            63.0       1.73      0.00           NaN            NaN     0.06
+ 689           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 690        ShardedToInterleaved            63.0       1.77      0.00           NaN            NaN     0.06
+ 691           Matmul 4096x16032    HiFi2   80.0     236.27      0.17          8.14           5.40     5.85
+ 692        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 693           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 694        ShardedToInterleaved            63.0       1.71      0.00           NaN            NaN     0.06
+ 695           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+ 696        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 697                      Concat           110.0      13.30      0.01           NaN            NaN     0.01
+ 698                        Copy           110.0      19.40      0.01           NaN            NaN     0.00
+ 699             UntilizeCodegen    HiFi4  110.0      35.21      0.03          1.09           0.56     0.00
+ 700                      ArgMax           110.0     501.66      0.37           NaN            NaN     0.00
+ 701                  Embeddings    HiFi4  110.0     668.44      0.49          0.40           0.12     0.00
+ 702                       Slice           110.0       5.89      0.00           NaN            NaN    60.76
+ 703                       Slice           110.0       6.34      0.00           NaN            NaN    56.38
+ 704                   LayerNorm    HiFi2  110.0     193.50      0.14          4.71           3.35     0.00
+ 705     MinimalMatmul 4096x6144    HiFi2   80.0    1145.38      0.84         83.65          55.23     0.00
+ 706              NlpCreateHeads           110.0     242.23      0.18           NaN            NaN     0.00
+ 707        RotaryEmbeddingLlama    HiFi4  110.0     312.02      0.23          7.21           4.41     0.00
+ 708        RotaryEmbeddingLlama    HiFi4  110.0      84.74      0.06          6.78           4.06     0.00
+ 709                    Typecast    HiFi4  110.0      29.71      0.02          0.78           0.68     0.00
+ 710                    Typecast    HiFi4  110.0      30.07      0.02          0.79           0.67     0.00
+ 711              PagedFillCache           110.0      23.24      0.02           NaN            NaN     0.00
+ 712              PagedFillCache           110.0      23.05      0.02           NaN            NaN     0.00
+ 713                    Typecast    HiFi4  110.0     115.50      0.09          0.78           0.70     0.00
+ 714                        SDPA    HiFi4   64.0    7553.30      5.56         23.73          12.65    20.57
+ 715              NLPConcatHeads           110.0      95.69      0.07           NaN            NaN     0.00
+ 716            Matmul 4096x4096    HiFi2   64.0     923.03      0.68         84.52          44.88    48.96
+ 717                    BinaryNg    HiFi4  110.0     189.78      0.14          0.51           0.43     0.00
+ 718                   LayerNorm    HiFi2  110.0     192.56      0.14          4.72           3.36     0.00
+ 719           Matmul 4096x14336     LoFi   64.0    2180.82      1.61         63.59          33.37    36.26
+ 720           Matmul 4096x14336     LoFi   64.0    2179.87      1.61         63.64          33.39    36.28
+ 721                    BinaryNg    HiFi4  110.0     900.49      0.66          1.03           0.94     0.00
+ 722    MinimalMatmul 14336x4096    HiFi2   64.0    3144.05      2.32         86.68          46.14     0.00
+ 723                    BinaryNg    HiFi4  110.0     188.15      0.14          0.51           0.43     0.00
+ 724                       Slice           110.0      10.22      0.01           NaN            NaN    11.80
+ 725                   LayerNorm    HiFi2    1.0      65.38      0.05          9.29           0.08     0.00
+ 726        InterleavedToSharded            64.0       1.52      0.00           NaN            NaN     0.07
+ 727           Matmul 4096x16032    HiFi2   80.0     236.33      0.17          8.14           5.40     5.85
+ 728        ShardedToInterleaved            63.0       1.83      0.00           NaN            NaN     0.06
+ 729           Matmul 4096x16032    HiFi2   80.0     236.35      0.17          8.14           5.40     5.85
+ 730        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 731           Matmul 4096x16032    HiFi2   80.0     236.26      0.17          8.14           5.40     5.85
+ 732        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 733           Matmul 4096x16032    HiFi2   80.0     236.38      0.17          8.14           5.40     5.85
+ 734        ShardedToInterleaved            63.0       1.79      0.00           NaN            NaN     0.06
+ 735           Matmul 4096x16032    HiFi2   80.0     236.22      0.17          8.14           5.41     5.85
+ 736        ShardedToInterleaved            63.0       1.83      0.00           NaN            NaN     0.06
+ 737           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 738        ShardedToInterleaved            63.0       1.74      0.00           NaN            NaN     0.06
+ 739           Matmul 4096x16032    HiFi2   80.0     236.31      0.17          8.14           5.40     5.85
+ 740        ShardedToInterleaved            63.0       1.75      0.00           NaN            NaN     0.06
+ 741           Matmul 4096x16032    HiFi2   80.0     236.22      0.17          8.14           5.41     5.85
+ 742        ShardedToInterleaved            63.0       1.72      0.00           NaN            NaN     0.06
+ 743                      Concat           110.0      13.21      0.01           NaN            NaN     0.01
+ 744                        Copy           110.0      20.17      0.01           NaN            NaN     0.00
+ 745             UntilizeCodegen    HiFi4  110.0      35.85      0.03          1.08           0.55     0.00
+ 746                  Embeddings    HiFi4  110.0     292.58      0.22          0.78           0.28     0.00
+ 747                       Slice           110.0       6.01      0.00           NaN            NaN    59.49
+ 748                       Slice           110.0       6.10      0.00           NaN            NaN    58.68
+ 749                   LayerNorm    HiFi2  110.0     193.94      0.14          4.70           3.34     0.00
+ 750     MinimalMatmul 4096x6144    HiFi2   80.0    1142.00      0.84         83.86          55.39     0.00
+ 751              NlpCreateHeads           110.0     238.83      0.18           NaN            NaN     0.00
+ 752        RotaryEmbeddingLlama    HiFi4  110.0     309.29      0.23          7.06           4.45     0.00
+ 753        RotaryEmbeddingLlama    HiFi4  110.0      83.76      0.06          6.71           4.11     0.00
+ 754                    Typecast    HiFi4  110.0      29.68      0.02          0.78           0.68     0.00
+ 755                    Typecast    HiFi4  110.0      29.54      0.02          0.80           0.68     0.00
+ 756              PagedFillCache           110.0      20.37      0.02           NaN            NaN     0.00
+ 757              PagedFillCache           110.0      20.63      0.02           NaN            NaN     0.00
+ 758                    Typecast    HiFi4  110.0     118.19      0.09          0.78           0.68     0.00
+ 759                        SDPA    HiFi4   64.0    7553.74      5.56         23.73          12.65    20.56
+ 760              NLPConcatHeads           110.0      96.31      0.07           NaN            NaN     0.00
+ 761            Matmul 4096x4096    HiFi2   64.0     920.95      0.68         84.61          44.98    49.07
+ 762                    BinaryNg    HiFi4  110.0     189.57      0.14          0.51           0.43     0.00
+ 763                   LayerNorm    HiFi2  110.0     194.42      0.14          4.69           3.33     0.00
+ 764           Matmul 4096x14336     LoFi   64.0    2180.37      1.61         63.64          33.38    36.27
+ 765           Matmul 4096x14336     LoFi   64.0    2175.21      1.60         63.78          33.46    36.36
+ 766                    BinaryNg    HiFi4  110.0     900.49      0.66          1.03           0.94     0.00
+ 767    MinimalMatmul 14336x4096    HiFi2   64.0    3144.27      2.32         86.67          46.14     0.00
+ 768                    BinaryNg    HiFi4  110.0     187.67      0.14          0.51           0.43     0.00
+ 769                       Slice           110.0      10.66      0.01           NaN            NaN    11.33
+ 770                   LayerNorm    HiFi2    1.0      65.12      0.05          9.33           0.08     0.00
+ 771        InterleavedToSharded            64.0       1.55      0.00           NaN            NaN     0.06
+ 772           Matmul 4096x16032    HiFi2   80.0     236.43      0.17          8.14           5.40     5.84
+ 773        ShardedToInterleaved            63.0       1.81      0.00           NaN            NaN     0.06
+ 774           Matmul 4096x16032    HiFi2   80.0     236.41      0.17          8.14           5.40     5.85
+ 775        ShardedToInterleaved            63.0       1.82      0.00           NaN            NaN     0.06
+ 776           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 777        ShardedToInterleaved            63.0       1.71      0.00           NaN            NaN     0.06
+ 778           Matmul 4096x16032    HiFi2   80.0     236.30      0.17          8.14           5.40     5.85
+ 779        ShardedToInterleaved            63.0       1.80      0.00           NaN            NaN     0.06
+ 780           Matmul 4096x16032    HiFi2   80.0     236.28      0.17          8.14           5.40     5.85
+ 781        ShardedToInterleaved            63.0       1.79      0.00           NaN            NaN     0.06
+ 782           Matmul 4096x16032    HiFi2   80.0     236.46      0.17          8.14           5.40     5.84
+ 783        ShardedToInterleaved            63.0       1.70      0.00           NaN            NaN     0.06
+ 784           Matmul 4096x16032    HiFi2   80.0     236.29      0.17          8.14           5.40     5.85
+ 785        ShardedToInterleaved            63.0       1.71      0.00           NaN            NaN     0.06
+ 786           Matmul 4096x16032    HiFi2   80.0     236.18      0.17          8.14           5.41     5.85
+ 787        ShardedToInterleaved            63.0       1.67      0.00           NaN            NaN     0.06
+ 788                      Concat           110.0      13.44      0.01           NaN            NaN     0.01
+ 789                        Copy           110.0      19.69      0.01           NaN            NaN     0.00
+ 790             UntilizeCodegen    HiFi4  110.0      35.62      0.03          1.12           0.56     0.00

@@ -800,6 +800,24 @@ def _enrich_ops_from_device_logs(
         device_dispatch_ops_time = device_data["devices"][device]["cores"]["DEVICE"]["riscs"]["TENSIX"]["dispatch_ops"]
         device_ops_time.sort(key=device_op_compare_time)
 
+        # Host ops recorded while capturing a trace that the host never replayed (e.g. warmup traces recorded up
+        # front by a model but not executed) never ran on the device, so the device log has no data for them.
+        # Without this the host/device op counts below can never match. Same policy as _enrich_ops_from_perf_csv.
+        never_replayed_ops = [
+            op
+            for op in host_ops_by_device[device]
+            if op.get("metal_trace_id") is not None
+            and not _host_replayed_trace(trace_replays, device, op["metal_trace_id"])
+        ]
+        if never_replayed_ops:
+            dropped_trace_ids = sorted({op["metal_trace_id"] for op in never_replayed_ops})
+            logger.warning(
+                f"Device {device}: trace(s) {dropped_trace_ids} were captured but never replayed (no REPLAY marker "
+                f"from the host); their {len(never_replayed_ops)} host ops get no device data"
+            )
+            dropped_ids = {id(op) for op in never_replayed_ops}
+            host_ops_by_device[device] = [op for op in host_ops_by_device[device] if id(op) not in dropped_ids]
+
         if has_trace_runs and trace_replays:
             generated_host_data = []
             op_id_host_data_dict = {}

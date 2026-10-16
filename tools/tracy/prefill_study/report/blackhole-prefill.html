@@ -1,0 +1,1648 @@
+<title>Llama 3.1 8B Prefill on Blackhole</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 64rem reading column, engineering-notebook register; charts and tables run full column width, prose held to ~68ch. */
+:root {
+  --paper: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #15191e;
+  --ink-2: #48515b;
+  --ink-3: #737c87;
+  --rule: #dce0e5;
+  --rule-soft: #eceef1;
+  --accent: #0d6670;
+  --accent-soft: #e3f0f1;
+  --mm: #2a78d6;
+  --sdpa: #eb6834;
+  --other: #c4c9cf;
+  --pv: #1baf7a;
+  --mx: #eda100;
+  --co: #e87ba4;
+  --flag: #9a5b00;
+  --flag-soft: #fbf1df;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --step--1: 0.8125rem;
+  --step-0: 0.9375rem;
+  --step-1: 1.125rem;
+  --step-2: 1.5rem;
+  --step-3: 2.25rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #111417;
+    --surface: #181c20;
+    --ink: #e9ecef;
+    --ink-2: #b4bcc5;
+    --ink-3: #8a939d;
+    --rule: #2c3238;
+    --rule-soft: #22272c;
+    --accent: #5fc1c9;
+    --accent-soft: #15302f;
+    --mm: #3987e5;
+    --sdpa: #d95926;
+    --other: #4a5159;
+    --pv: #199e70;
+    --mx: #c98500;
+    --co: #d55181;
+    --flag: #f0b44c;
+    --flag-soft: #2e2512;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #111417;
+  --surface: #181c20;
+  --ink: #e9ecef;
+  --ink-2: #b4bcc5;
+  --ink-3: #8a939d;
+  --rule: #2c3238;
+  --rule-soft: #22272c;
+  --accent: #5fc1c9;
+  --accent-soft: #15302f;
+  --mm: #3987e5;
+  --sdpa: #d95926;
+  --other: #4a5159;
+  --pv: #199e70;
+  --mx: #c98500;
+  --co: #d55181;
+  --flag: #f0b44c;
+  --flag-soft: #2e2512;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-block: 2.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-stretch: 85%;
+  text-wrap: balance;
+  margin: 0;
+  line-height: 1.15;
+}
+h1 { font-size: var(--step-3); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: var(--step-2); font-weight: 650; }
+h3 { font-size: var(--step-1); font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.875em; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+}
+section { display: flex; flex-direction: column; gap: 1rem; }
+.lede { font-size: var(--step-1); color: var(--ink-2); max-width: 62ch; }
+.muted { color: var(--ink-3); }
+.small { font-size: var(--step--1); }
+
+header { display: flex; flex-direction: column; gap: 0.9rem; border-bottom: 1px solid var(--rule); padding-bottom: 2rem; }
+.meta {
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem;
+  font-family: var(--font-mono); font-size: var(--step--1); color: var(--ink-2);
+}
+.meta span b { color: var(--ink); font-weight: 500; }
+
+.findings { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem 2rem; }
+.findings li { display: flex; flex-direction: column; gap: 0.25rem; border-top: 2px solid var(--ink); padding-top: 0.75rem; }
+.findings .fig { font-family: var(--font-display); font-stretch: 80%; font-size: var(--step-2); font-weight: 650; font-variant-numeric: tabular-nums; }
+.findings p { font-size: var(--step--1); color: var(--ink-2); }
+
+.callout {
+  background: var(--flag-soft);
+  border: 1px solid color-mix(in srgb, var(--flag) 35%, transparent);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  display: flex; flex-direction: column; gap: 0.6rem;
+}
+.callout h3 { color: var(--ink); }
+.callout ol { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; max-width: 72ch; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; font-size: var(--step--1); color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.ln { width: 22px; height: 0; border-top: 2px solid; display: inline-block; }
+.ln.dash { border-top-style: dashed; }
+
+.chart-wrap { position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1rem 0.5rem; overflow-x: auto; }
+.chart-wrap svg { display: block; width: 100%; height: auto; min-width: 560px; }
+.chart-wrap svg text { font-family: var(--font-body); }
+.tip {
+  position: absolute; pointer-events: none; z-index: 2;
+  background: var(--ink); color: var(--paper);
+  font-size: var(--step--1); line-height: 1.45;
+  padding: 0.5rem 0.65rem; border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tip b { font-weight: 600; }
+.tip .k { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 0.35rem; }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+th, td { padding: 0.55rem 0.75rem; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule-soft); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-weight: 600; color: var(--ink-2); vertical-align: bottom; border-bottom: 1px solid var(--rule); font-size: 0.75rem; letter-spacing: 0.02em; }
+thead tr.group th { font-family: var(--font-mono); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); border-bottom: none; padding-bottom: 0; }
+tbody tr:last-child td { border-bottom: none; }
+td.num { font-family: var(--font-mono); }
+td .pad { display: block; font-size: 0.72rem; color: var(--flag); font-family: var(--font-mono); }
+tr.dup td { color: var(--ink-3); }
+.sep { border-left: 1px solid var(--rule); }
+.chg { background: var(--flag-soft); }
+.delta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--flag); display: block; }
+.ok { color: var(--ink-3); }
+.meter { display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end; }
+.meter i { display: block; height: 10px; border-radius: 3px; background: var(--mm); }
+.meter i.none { background: var(--other); }
+table.units td { white-space: normal; vertical-align: top; text-align: left; }
+table.units td.calls { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-2); min-width: 16rem; }
+.unit { display: inline-block; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500; padding: 0.05rem 0.45rem; border-radius: 999px; border: 1px solid; margin: 0 0.25rem 0.2rem 0; white-space: nowrap; }
+.unit.fpu { color: var(--mm); border-color: color-mix(in srgb, var(--mm) 55%, transparent); }
+.unit.sfpu { color: var(--sdpa); border-color: color-mix(in srgb, var(--sdpa) 55%, transparent); }
+.unit.pack { color: var(--ink-3); border-color: var(--rule); }
+
+.defs { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr; gap: 0.6rem 1.5rem; margin: 0; }
+.defs dt { font-weight: 600; }
+.defs dd { margin: 0; color: var(--ink-2); max-width: 68ch; }
+pre {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+  padding: 0.9rem 1rem; margin: 0; overflow-x: auto;
+  font-family: var(--font-mono); font-size: var(--step--1); line-height: 1.55; color: var(--ink);
+}
+pre .c { color: var(--ink-3); }
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; max-width: 72ch; }
+.checks li { display: flex; gap: 0.6rem; }
+.checks li::before { content: "✓"; color: var(--accent); font-weight: 600; }
+footer { border-top: 1px solid var(--rule); padding-top: 1rem; font-size: var(--step--1); color: var(--ink-3); }
+
+@media (max-width: 640px) {
+  .defs { grid-template-columns: 1fr; }
+  .defs dd { margin-bottom: 0.4rem; }
+}
+</style>
+
+<div class="page">
+
+<header>
+  <div class="eyebrow">Prefill profiling · single Blackhole device</div>
+  <h1>Llama 3.1 8B Prefill on Blackhole</h1>
+  <p class="lede">Where one decoder layer spends its kernel time, and how busy the math engines are, for prompt lengths from 128 to 32,768 tokens. The figures here are recomputed on a single, consistent op scope and replace the current Blackhole prefill sheet.</p>
+  <div class="meta">
+    <span>model <b>Llama-3.1-8B-Instruct</b>, 1 layer</span>
+    <span>device <b>P150, 1 chip</b></span>
+    <span>clock <b>1350 MHz</b></span>
+    <span>worker grid <b>110 cores</b></span>
+    <span>runs <b>2026-10-13 / 14</b></span>
+  </div>
+</header>
+
+<section aria-labelledby="h-find">
+  <h2 id="h-find" class="eyebrow">Findings</h2>
+  <ul class="findings">
+    <li><span class="fig">4k → 8k</span><p>SDPA overtakes matmul as the largest share of layer kernel time. At 32k it takes 82%.</p></li>
+    <li><span class="fig">73–79%</span><p>FPU utilization inside matmuls, per active core, from 1k up. 66% at 512 and 46% at 128, where the matmuls are too short to fill the cores.</p></li>
+    <li><span class="fig">≈ 59%</span><p>SFPU utilization inside SDPA, per active core, from 2k up. 46–47% at 512 and 1k.</p></li>
+    <li><span class="fig">3.4×</span><p>Growth in layer kernel time from 16k to 32k (164 → 556 ms), as attention cost goes quadratic.</p></li>
+  </ul>
+</section>
+
+<section aria-labelledby="h-fix">
+  <div class="callout">
+    <h3 id="h-fix">What changed from the sheet</h3>
+    <ol>
+      <li><strong>Op scope switched at 2k.</strong> Prefill is traced up to 1k and untraced from 2k on, so the report script picked one decoder layer for 128–1k but the whole forward pass for 2k+. That added the final norm and 8 LM-head matmuls (about 19% of kernel time at 2k) to the larger rows only. MatMul % was inflated by up to 7 pt and SDPA % deflated by up to 5 pt.</li>
+      <li><strong>FPU definition switched too.</strong> For 2k+ the sheet's FPU figure is the median over <em>working</em> cores. That counts only the 8 of 80 LM-head cores that do any work. Every row here uses the median over <em>active</em> cores.</li>
+      <li><strong>Two rows were padded repeats, and are now re-measured.</strong> By default the 512-token prompt is prefilled at 1024 and the 3072-token prompt at 4096, so the sheet's rows for them repeated the 1k and 4k measurements. Both lengths were re-profiled at their real size with <code>TT_PREFILL_MIN_PADDING=1</code> (a test-only switch, see Method). This moved 512 from 62.05% to 70.81% MatMul and 3072 from 51.86% to 54.24%.</li>
+    </ol>
+  </div>
+</section>
+
+<section aria-labelledby="h-time">
+  <h2 id="h-time">Where the layer's kernel time goes</h2>
+  <p class="muted">Share of device kernel time for embedding + one decoder layer (the same 21 ops at every length). The figure at the right of each bar is the total kernel time of those ops.</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>Matmul (all variants)</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>SDPA</span>
+    <span><i class="sw" style="background:var(--other)"></i>Everything else</span>
+  </div>
+  <div class="chart-wrap" id="share-wrap">
+    <svg id="share" role="img" aria-label="Stacked bar chart of matmul, SDPA and other share of layer kernel time for each prompt length"></svg>
+  </div>
+</section>
+
+<section aria-labelledby="h-util">
+  <h2 id="h-util">Math engine utilization</h2>
+  <p class="muted">FPU inside matmul ops and SFPU inside SDPA ops, as a share of the counter window, weighted by op kernel time. Solid lines take the median over the cores that ran the op. Dashed lines spread the same work over the whole 110-core grid, with idle cores counted as 0.</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="ln" style="border-color:var(--mm)"></i>FPU in matmul, per active core</span>
+    <span><i class="ln dash" style="border-color:var(--mm)"></i>FPU in matmul, full grid</span>
+    <span><i class="ln" style="border-color:var(--sdpa)"></i>SFPU in SDPA, per active core</span>
+    <span><i class="ln dash" style="border-color:var(--sdpa)"></i>SFPU in SDPA, full grid</span>
+  </div>
+  <div class="chart-wrap" id="util-wrap">
+    <svg id="util" role="img" aria-label="Line chart of FPU and SFPU utilization against prompt length"></svg>
+  </div>
+</section>
+
+<section aria-labelledby="h-layer-units">
+  <h2 id="h-layer-units">FPU and SFPU across the whole layer</h2>
+  <p class="muted">Utilization of each math unit over all ops of the layer, not only the matmuls and SDPA. For each op: busy cycles &divide; the core's kernel window, averaged over the cores that ran its compute kernel. Ops are then weighted by device kernel time, as in the first chart. SDPA's own counters already include its QK&#7488; and PV matmuls and every other FPU and SFPU instruction it runs.</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>FPU</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>SFPU</span>
+  </div>
+  <div class="chart-wrap" id="lu-wrap">
+    <svg id="lu" role="img" aria-label="Grouped bar chart of whole-layer FPU and SFPU utilization for each prompt length"></svg>
+  </div>
+  <div class="table-wrap">
+    <table id="lu-table">
+      <thead>
+        <tr class="group"><th></th><th colspan="4" class="sep">FPU, %</th><th colspan="4" class="sep">SFPU, %</th><th class="sep"></th></tr>
+        <tr><th>Prompt length</th><th class="sep">layer</th><th>from matmul ops</th><th>from SDPA</th><th>from other ops</th><th class="sep">layer</th><th>from SDPA</th><th>from SiLU &times; mul</th><th>from other ops</th><th class="sep">either unit busy</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <h3>What the whole-layer view shows</h3>
+    <ol>
+      <li><strong>The FPU and SFPU swap places as prompts grow.</strong> FPU utilization peaks at 53.6% at 1k and falls to 30.0% at 32k, while SFPU climbs from 2.3% to 49.8%. They cross between 8k and 16k. The share of time with at least one unit busy rises from 39% to 80%.</li>
+      <li><strong>At long prompts, most FPU work is SDPA's own matmuls.</strong> At 32k, SDPA supplies 19.6 of the 30.0 FPU points, and QK&#7488; and PV make up about 92% of SDPA's FPU cycles. The projection and MLP matmuls supply 10.4 points.</li>
+      <li><strong>The MLP's SiLU &times; multiply is the other SFPU user.</strong> It keeps the SFPU 58&ndash;69% busy and supplies half of all SFPU activity at 512 (3.5 of 7.1 points) and a third at 1k (4.1 of 11.9). From 8k on, SDPA's exp dominates.</li>
+      <li><strong>Everything else is small.</strong> LayerNorm, RoPE, typecasts, the embedding and the residual adds add at most 1.1 FPU points and 0.1 SFPU points. Data-movement ops count as zero and take 0.5&ndash;2.9% of layer time (4.6% at 3072).</li>
+    </ol>
+  </div>
+  <dl class="defs">
+    <dt>Ops with no counters</dt>
+    <dd>Create heads, concat heads, the two KV-cache writes, and the pad and slice at 3072 launch no compute kernel; the 4k device log shows only data-movement cores for them. They count as 0% on both units, and their time stays in the average.</dd>
+    <dt>Coverage</dt>
+    <dd>Every compute op reported counters from all of its compute cores, at every length.</dd>
+    <dt>Variants</dt>
+    <dd>The median over cores instead of the mean gives the same values to within 0.5 pt. Weighting ops by cores &times; time instead of time gives values up to 4 pt lower at short prompts (FPU 33.0 instead of 36.8 at 128), because 110-core element-wise ops leave both units nearly idle. Over the whole 110-core grid with idle cores at 0, the 32k values are FPU 17.7% and SFPU 29.4%.</dd>
+    <dt>Idle between ops</dt>
+    <dd>Not included. Counting it would scale every value by 0.95 (2k) to 0.998 (32k), mostly because of one host-side gap of about 300 &micro;s before the attention LayerNorm in eager runs. The op timestamps of the 512 and 3072 runs cannot measure it.</dd>
+    <dt>Busy is not FLOPs</dt>
+    <dd>The FPU counter counts every fidelity pass, so a HiFi4 matmul keeps the FPU busy four times as long as LoFi for the same multiply-adds. These numbers are unit occupancy, not arithmetic efficiency.</dd>
+  </dl>
+  <p class="small muted">Computed with <code>tools/tracy/prefill_study/layer_units.py</code> from the same counter runs as the table below.</p>
+</section>
+
+<section aria-labelledby="h-sdpa">
+  <h2 id="h-sdpa">Inside SDPA</h2>
+  <p class="muted">Where the SDPA compute kernel spends its time, per stage of the flash-attention loop, as a share of the math thread's time. From 2k on, two thirds of it goes to the fused subtract-and-exp of the softmax. The two matmuls together take under a quarter.</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>QK&#7488; matmul</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>Softmax subtract + exp</span>
+    <span><i class="sw" style="background:var(--pv)"></i>PV matmul</span>
+    <span><i class="sw" style="background:var(--mx)"></i>Row max</span>
+    <span><i class="sw" style="background:var(--co)"></i>Running-max correction</span>
+    <span><i class="sw" style="background:var(--other)"></i>Mask, row sum, normalize</span>
+  </div>
+  <div class="chart-wrap" id="sdpa-wrap">
+    <svg id="sdpa" role="img" aria-label="Stacked bar chart of SDPA compute stages as a share of math-thread time for each prompt length"></svg>
+  </div>
+  <div class="table-wrap">
+    <table id="sdpa-table">
+      <thead>
+        <tr class="group"><th></th><th></th><th></th><th colspan="6" class="sep">share of math-thread time</th><th colspan="3" class="sep">time per chunk step (&micro;s)</th></tr>
+        <tr><th>Prompt length</th><th>Chunk</th><th>SDPA time</th><th class="sep">QK&#7488;</th><th>sub + exp</th><th>PV</th><th>row max</th><th>correction</th><th>other</th><th class="sep">QK&#7488;</th><th>sub + exp</th><th>PV</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <h3>What this points at</h3>
+    <ol>
+      <li><strong>The exponent is the bottleneck.</strong> With 256-token chunks one subtract-and-exp step takes 73.4 &micro;s for 64 tiles, about 1.15 &micro;s (1,550 cycles) per tile. The QK&#7488; and PV matmuls on the same chunk take 13.1 and 12.3 &micro;s. This matches the perf counters: SFPU busy 59%, FPU 24%.</li>
+      <li><strong>Two settings are worth an experiment.</strong> Prefill SDPA runs with <code>exp_approx_mode=False</code> (<code>model_config.py:1723</code>) and with fp32 destination accumulation (HiFi4). The fp32 setting also keeps SDPA on the older compute loop rather than the streaming one. Both need a PCC check before they could ship.</li>
+      <li><strong>Short prompts pay per-chunk overhead.</strong> Below 2k the chunks are 64 tokens, so the row max and the running-max correction grow to 29–32% of the math thread's time, against 10–11% with 256-token chunks.</li>
+    </ol>
+  </div>
+  <p class="small muted">Measured with 8 temporary profiling zones in the SDPA compute loop (<code>generated/profiler/sdpa_zones/sdpa_stage_zones.patch</code>, now reverted). Each compute core records only its first ~125 zones, so the mean time of each stage comes from that sample and is multiplied by the exact number of times the stage runs in a causal SDPA. The rebuilt totals cover 96&ndash;100% of the measured math-thread time at every length, and the zones did not change SDPA kernel time.</p>
+</section>
+
+<section aria-labelledby="h-units">
+  <h2 id="h-units">FPU and SFPU inside SDPA</h2>
+  <p class="muted">Which math unit each stage uses, read from the compute calls in the legacy SDPA loop, and how the measured FPU and SFPU cycles divide between the stages. The FPU is the matrix engine; it runs matmuls and tile-wise add, subtract, multiply and reduce. The SFPU is the vector unit; it runs per-element functions such as exp, reciprocal and max.</p>
+
+  <div class="table-wrap">
+    <table class="units">
+      <thead>
+        <tr><th>Stage</th><th>Compute calls</th><th>Unit</th><th>Per 256-token chunk step</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>QK&#7488; matmul</td><td class="calls">matmul_tiles (B transposed)</td><td><span class="unit fpu">FPU</span></td><td>256 tile products</td></tr>
+        <tr><td>Causal mask</td><td class="calls">copy_tile, pack_tile into L1 with accumulate</td><td><span class="unit fpu">FPU copy</span><span class="unit pack">packer</span></td><td>diagonal chunk only; the add happens in the packer</td></tr>
+        <tr><td>Row max</td><td class="calls">reduce_tile&lt;MAX, ROW&gt;; copy_tile; binary_max_tile</td><td><span class="unit fpu">FPU</span><span class="unit sfpu">SFPU</span></td><td>64 reduce tiles (FPU), 8 max tiles (SFPU)</td></tr>
+        <tr><td>Subtract + exp</td><td class="calls">sub_tiles_bcast_cols; mul_unary_tile (&times; 1/&radic;d); exp_tile</td><td><span class="unit fpu">FPU</span><span class="unit sfpu">SFPU</span></td><td>64 tiles: subtract on the FPU, scale and exp on the SFPU</td></tr>
+        <tr><td>PV matmul</td><td class="calls">matmul_tiles</td><td><span class="unit fpu">FPU</span></td><td>256 tile products</td></tr>
+        <tr><td>Correction</td><td class="calls">sub_tiles; exp on first column; mul_tiles_bcast_cols; add_tiles; mul_block_bcast_cols</td><td><span class="unit fpu">FPU</span><span class="unit sfpu">SFPU</span></td><td>56 FPU tiles, 8 single-column exps (SFPU)</td></tr>
+        <tr><td>Row sum</td><td class="calls">matmul_reduce</td><td><span class="unit fpu">FPU</span></td><td>once per Q chunk</td></tr>
+        <tr><td>Normalize</td><td class="calls">recip_tile on first column; mul_block_bcast_cols</td><td><span class="unit sfpu">SFPU</span><span class="unit fpu">FPU</span></td><td>once per Q chunk</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Cycles per chunk step, 256-token chunks</h3>
+  <p class="muted">One K-chunk step at 2k&ndash;32k tokens, split into cycles where an FPU instruction is running, an SFPU instruction is running, or neither. The SDPA counters show FPU + SFPU = MATH exactly, so the two units never run at the same time in this kernel.</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>FPU busy</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>SFPU busy</span>
+    <span><i class="sw" style="background:var(--other)"></i>Neither (waiting on unpack or pack, setup)</span>
+  </div>
+  <div class="chart-wrap" id="units-wrap">
+    <svg id="units" role="img" aria-label="Stacked bar chart of FPU, SFPU and idle cycles for each SDPA stage in one 256-token chunk step"></svg>
+  </div>
+  <div class="table-wrap">
+    <table id="units-table">
+      <thead>
+        <tr class="group"><th></th><th></th><th colspan="2" class="sep">FPU</th><th colspan="2" class="sep">SFPU</th><th colspan="2" class="sep">neither</th></tr>
+        <tr><th>Stage</th><th>Stage cycles</th><th class="sep">cycles</th><th>% of stage</th><th class="sep">cycles</th><th>% of stage</th><th class="sep">cycles</th><th>% of stage</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <h3>What the split shows</h3>
+    <ol>
+      <li><strong>The matmuls run the FPU close to its peak.</strong> QK&#7488; keeps the FPU busy 93% of its stage time and PV 98%, assuming the FPU's HiFi4 rate of 64 cycles per 32&times;32&times;32 tile product. The measured stages take 65&ndash;69 cycles per tile product. Matmuls account for 92% of all FPU cycles in SDPA.</li>
+      <li><strong>97% of SFPU cycles are the softmax scale and exp.</strong> Each subtract-and-exp tile costs about 1,360 SFPU cycles, against about 15 FPU cycles for its subtract. The SFPU is busy 88% of that stage.</li>
+      <li><strong>The non-approximate path does extra SFPU work per tile.</strong> With <code>exp_approx_mode=False</code> the kernel multiplies each tile by 1/&radic;d as a separate SFPU pass, and re-initialises the multiply and the exp for every tile (<code>compute_common.hpp:404&ndash;407</code>). Folding the scale into the exp and hoisting the setup out of the loop is a code change to try, separate from switching to approximate exp.</li>
+      <li><strong>Row max and correction wait more than they compute.</strong> Neither unit is busy for 73&ndash;76% of those stages; the math thread is waiting on the unpacker or packer. They take about 11% of SDPA time, so this matters less than the exp.</li>
+    </ol>
+  </div>
+  <p class="small muted">How the split was derived: the unit for each call comes from the kernel code; FPU, SFPU and MATH busy cycles come from the SDPA perf counters (FPU 23.73%, SFPU 59.38%, MATH 83.11% at 32k); stage times come from the profiling zones. Matmul FPU cycles use the HiFi4 rate. The SFPU cost of a subtract-and-exp tile (1,356 cycles) and of the small SFPU ops (142 cycles per tile) are solved from the 64-token and 256-token chunk runs together. The FPU cost of the element-wise tiles (14.7 cycles) is what remains of the FPU counter after the matmuls. Rebuilt from these, the FPU and SFPU cycles per step match the counters to within 0.03%. This split is given for 256-token chunks only. At 64-token chunks the PV stage measures 53 cycles per tile product, faster than the FPU can run it, which means the math thread's timestamps run ahead of the hardware on short stages. In aggregate at 64-token chunks, matmuls are 81% of FPU cycles.</p>
+</section>
+
+<section aria-labelledby="h-flow">
+  <h2 id="h-flow">Dependencies and scheduling</h2>
+  <p class="muted">What has to wait for what, and what actually runs when. First the ops of the decoder layer, then the steps inside one SDPA kernel. All times are from the 4k-token run.</p>
+
+  <h3>Decoder layer: data flow</h3>
+  <p class="muted">Each box is one device op and each arrow is a tensor passed from one op to the next, read from the model code (<code>attention.py</code>, <code>mlp.py</code>, <code>decoder.py</code>). Times are device kernel times. Thick arrows mark the longest dependency chain; dashed boxes are ops that are not on it.</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>Matmul</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>SDPA</span>
+    <span><i class="sw" style="background:var(--other)"></i>Other op</span>
+    <span><i class="sw" style="background:transparent;border:1.5px dashed var(--ink-3)"></i>Not on the longest chain</span>
+  </div>
+  <div class="chart-wrap" id="dag-wrap">
+    <svg id="dag" role="img" aria-label="Data-flow graph of the 23 device ops in one decoder layer, with the longest dependency chain highlighted"></svg>
+  </div>
+
+  <h3>Decoder layer: what the device runs</h3>
+  <p class="muted">The device runs one op at a time in program order, so the branches above run back to back. The gap between ops is 0.5&ndash;0.8 &micro;s. Faded blocks are the ops that are not on the longest chain.</p>
+  <div class="chart-wrap" id="tl-wrap">
+    <svg id="tl" role="img" aria-label="Timeline of the decoder layer's ops on the device at 4k tokens, in execution order"></svg>
+  </div>
+  <div class="callout">
+    <h3>What the layer graph shows</h3>
+    <ol>
+      <li><strong>The longest dependency chain is 17.59 ms of the 19.97 ms the layer takes (88%).</strong> The chain runs Embeddings &rarr; QKV &rarr; RoPE Q &rarr; SDPA &rarr; Wo &rarr; W1 &rarr; W2. The other 2.38 ms is W3 (2.18 ms, which could run beside W1), the K and V branch (0.14 ms), the KV-cache writes (0.05 ms) and the RoPE table slices (0.01 ms).</li>
+      <li><strong>Reordering ops has little to give at this length.</strong> W1 and W3 each already use 64 of the 110 cores, so running them side by side would not halve their time. Everything else off the chain adds up to 0.2 ms, 1% of the layer.</li>
+      <li><strong>SDPA does not read the KV cache in prefill.</strong> It takes Q, K and V straight from the type-cast tensors. The two cache writes run before SDPA only because the device runs ops in program order; nothing in this layer waits for them.</li>
+    </ol>
+  </div>
+
+  <h3>Inside one SDPA chunk step: data flow</h3>
+  <p class="muted">Each core walks one 256-token Q chunk over the K/V chunks, one chunk per step. A step needs the next K and V chunk from DRAM and three running values from the step before: the row max <em>m</em>, the row sum <em>l</em> and the output accumulator <em>O</em>.</p>
+  <div class="chart-wrap" id="sflow-wrap">
+    <svg id="sflow" role="img" aria-label="Data-flow graph of one SDPA chunk step: inputs Q, K and V, the five stages, and the running max, sum and output carried between steps"></svg>
+  </div>
+
+  <h3>Inside one SDPA chunk step: measured schedule</h3>
+  <p class="muted">Two consecutive steps on one core (core 1,2) from the profiling zones on the three compute threads. The unpack thread feeds tiles to math, math computes in the destination registers, and pack writes the results back to L1. 1,350 cycles = 1 &micro;s.</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>QK&#7488; matmul</span>
+    <span><i class="sw" style="background:var(--mx)"></i>Row max</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>Subtract + exp</span>
+    <span><i class="sw" style="background:var(--pv)"></i>PV matmul</span>
+    <span><i class="sw" style="background:var(--co)"></i>Correction</span>
+  </div>
+  <div class="chart-wrap" id="gantt-wrap">
+    <svg id="gantt" role="img" aria-label="Measured timeline of two SDPA chunk steps on the unpack, math and pack threads of one core"></svg>
+  </div>
+  <div class="callout">
+    <h3>What the SDPA schedule shows</h3>
+    <ol>
+      <li><strong>The three threads move through the stages together, and no two stages overlap.</strong> Each stage takes the previous stage's output: scores, then max, then exponentials, then P&middot;V, then the corrected output.</li>
+      <li><strong>Math sets the pace.</strong> The unpack thread finishes its subtract-and-exp tiles 7,600 cycles before math does, on every step of every core, and pack follows math within a few hundred cycles.</li>
+      <li><strong>Data movement keeps up.</strong> The next step's QK&#7488; starts a median 55 cycles after the correction ends, so the next K and V chunks are already in L1. A step takes a median 149,760 cycles (111 &micro;s) across all 64 cores.</li>
+      <li><strong>The data dependencies allow more overlap than the kernel uses.</strong> QK&#7488; for the next chunk needs only Q and the next K chunk, nothing from the current step. It still waits for the current exp, PV and correction for two reasons: one math thread runs the stages in program order, and there is only one scores buffer, which stays in use until PV has read it. Overlapping QK&#7488; with the exp would also need the FPU and SFPU to work at the same time, which they never do in this kernel on Blackhole (FPU + SFPU = MATH). The Quasar model below shows what separate threads would allow.</li>
+    </ol>
+  </div>
+  <p class="small muted">The layer graph's edges come from the model code. The profiler records no tensor IDs, so they are not measured. The SDPA schedule is measured, from the zone run in <code>generated/profiler/sdpa_zones/prefill_4k</code>. The reader and writer threads that move K, V and the output have no zones in these runs, so they are not drawn; the 55-cycle gap between steps is the evidence that they keep up.</p>
+</section>
+
+<section aria-labelledby="h-quasar">
+  <h2 id="h-quasar">Hypothetical: SDPA on Quasar</h2>
+  <p class="muted">Quasar gives the SFPU its own issue thread, so FPU and SFPU work can run at the same time. This is a model of the same SDPA work with the stages split across an FPU thread and an SFPU thread. It reuses the cost of every stage as measured on Blackhole and keeps every true data dependency. It is not a measurement of Quasar.</p>
+  <div class="chart-wrap" id="quasar-wrap">
+    <svg id="quasar" role="img" aria-label="Timeline comparing the measured Blackhole SDPA schedule on one math thread with a modelled Quasar schedule on separate FPU and SFPU threads, over the same 300,000 cycles"></svg>
+  </div>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>QK&#7488; matmul</span>
+    <span><i class="sw" style="background:var(--mx)"></i>Row max</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>Subtract + exp</span>
+    <span><i class="sw" style="background:var(--pv)"></i>PV matmul</span>
+    <span><i class="sw" style="background:var(--co)"></i>Correction</span>
+  </div>
+  <div class="table-wrap">
+    <table id="quasar-table">
+      <thead>
+        <tr class="group"><th></th><th colspan="2" class="sep">SDPA kernel time</th><th colspan="3" class="sep">layer kernel time</th></tr>
+        <tr><th>Prompt length</th><th class="sep">Blackhole, measured</th><th>Quasar model</th><th class="sep">Blackhole, measured</th><th>Quasar model</th><th>change</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <h3>What the model shows</h3>
+    <ol>
+      <li><strong>An SDPA chunk step drops from 149,918 to 101,318 cycles (1.48&times;).</strong> The SFPU thread is busy the whole time; the FPU thread is busy 48%.</li>
+      <li><strong>All the FPU work hides behind the exp.</strong> While the SFPU computes exp for chunk j, the FPU thread runs PV and the correction for chunk j&minus;1, then QK&#7488; and the row-max reduce for chunk j+1. PV for chunk j starts the moment its exp finishes.</li>
+      <li><strong>After that, the exp alone sets SDPA's speed.</strong> Any saving in the exp (approximate mode, folding the 1/&radic;d scale into it, moving its setup out of the tile loop) would then shorten SDPA one for one.</li>
+      <li><strong>The layer gains most at long prompts:</strong> 27% faster at 32k, 12% at 4k, 8% at 2k, because SDPA's share of the layer grows with length.</li>
+    </ol>
+  </div>
+  <dl class="defs">
+    <dt>Stage costs</dt>
+    <dd>Wall time of each stage at 256-token chunks as measured on Blackhole, split by unit as in the FPU and SFPU section: on the FPU thread QK&#7488; 17,604, row-max reduce 8,127, PV 16,659 and correction 6,210 cycles; on the SFPU thread row max 1,134, correction exp 1,134 and subtract + exp 99,050 cycles. Quasar's clock and per-unit costs will differ.</dd>
+    <dt>Scores buffer</dt>
+    <dd>Two buffers for the scores S instead of one, so QK&#7488; for the next chunk has somewhere to write. That is one more 256&times;256 chunk in L1, 256 KB at fp32.</dd>
+    <dt>Order</dt>
+    <dd>Each thread runs its own work in order. A task starts when its thread is free and its inputs are ready.</dd>
+    <dt>Simplifications</dt>
+    <dd>The FPU subtract inside subtract + exp (939 cycles a step) stays with the exp. Waits on unpack and pack stay as measured. Each core would need about 0.93 GB/s of K and V, 59 GB/s across 64 cores, so data movement is assumed to keep up.</dd>
+    <dt>Range</dt>
+    <dd>Only prompts of 2k and up, which use 256-token chunks. Below 2k the zone timings of the short stages are not accurate enough to model.</dd>
+  </dl>
+</section>
+
+<section aria-labelledby="h-fastexp">
+  <h2 id="h-fastexp">What-if: a single-cycle exp</h2>
+  <p class="muted">A model of the same work if the softmax exp were one SFPU instruction and every instruction in the exp loop took one cycle. Each 32-lane SFPU slot then needs four cycles (load, 1/&radic;d multiply, exp, store): 128 cycles per 32&times;32 tile instead of the measured ~1,356. Everything else stays as measured. It is a model, not a measurement.</p>
+
+  <h3>One SDPA chunk step, 256-token chunks</h3>
+  <div class="chart-wrap" id="fx-wrap">
+    <svg id="fx" role="img" aria-label="Timeline of SDPA chunk steps over 150,000 cycles: Blackhole as measured, Blackhole with a single-cycle exp, and the Quasar two-thread model with a single-cycle exp"></svg>
+  </div>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>QK&#7488; matmul</span>
+    <span><i class="sw" style="background:var(--mx)"></i>Row max</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>Subtract + exp</span>
+    <span><i class="sw" style="background:var(--pv)"></i>PV matmul</span>
+    <span><i class="sw" style="background:var(--co)"></i>Correction</span>
+  </div>
+
+  <h3>Whole-layer utilization, measured and with a single-cycle exp</h3>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>FPU, measured</span>
+    <span><i class="sw" style="background:color-mix(in srgb, var(--mm) 30%, var(--surface));border:1.5px dashed var(--mm)"></i>FPU, single-cycle exp</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>SFPU, measured</span>
+    <span><i class="sw" style="background:color-mix(in srgb, var(--sdpa) 30%, var(--surface));border:1.5px dashed var(--sdpa)"></i>SFPU, single-cycle exp</span>
+  </div>
+  <div class="chart-wrap" id="fxu-wrap">
+    <svg id="fxu" role="img" aria-label="Grouped bar chart of whole-layer FPU and SFPU utilization, measured and with a single-cycle exp, for each prompt length"></svg>
+  </div>
+  <div class="table-wrap">
+    <table id="fx-table">
+      <thead>
+        <tr class="group"><th></th><th colspan="4" class="sep">layer kernel time</th><th colspan="2" class="sep">FPU, %</th><th colspan="2" class="sep">SFPU, %</th></tr>
+        <tr><th>Prompt length</th><th class="sep">measured</th><th>single-cycle exp</th><th>change</th><th>+ Quasar threads</th><th class="sep">measured</th><th>single-cycle exp</th><th class="sep">measured</th><th>single-cycle exp</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <h3>What the model shows</h3>
+    <ol>
+      <li><strong>An SDPA chunk step drops from 149,911 to 71,326 cycles (2.10&times;).</strong> The subtract-and-exp stage goes from 99,045 to 20,460 cycles. What remains in it is mostly waiting on unpack and pack (11,327 cycles, kept as measured), the exp itself (8,192) and the FPU subtract (939).</li>
+      <li><strong>The layer gets 0.8% faster at 128, 6.4% at 1k, 19.8% at 4k and 43.2% at 32k,</strong> because SDPA's share of the layer grows with length.</li>
+      <li><strong>The FPU becomes the busy unit again.</strong> Whole-layer FPU utilization at 32k rises from 30.0% to 52.8% and SFPU falls from 49.8% to 11.7%. Inside an SDPA step the FPU would be busy 49.9% of the time and the SFPU 14.7%.</li>
+      <li><strong>With Quasar's separate threads on top, the step is 48,588 cycles (3.09&times; today),</strong> set by the FPU thread's own work: QK&#7488;, PV, the row-max reduce and the correction. The layer at 32k would take 246 ms instead of 556 ms.</li>
+      <li><strong>The SFPU side is within reach today.</strong> The kernel's existing approximate exp is documented at about 68 cycles per tile, so approximate mode would cover the SFPU part of this what-if, at an accuracy cost that needs a PCC check. It would not remove the stage's waits.</li>
+    </ol>
+  </div>
+  <dl class="defs">
+    <dt>Changed</dt>
+    <dd>Only the exp inside subtract + exp: 64 tiles per step at 128 cycles each. That exp is 91&ndash;97% of SDPA's SFPU cycles, depending on chunk size.</dd>
+    <dt>Kept as measured</dt>
+    <dd>The FPU subtract and the unpack/pack waits of the subtract-and-exp stage, the other SDPA stages, the correction's one-column exp, the row max, the reciprocal, and every other op.</dd>
+    <dt>Per length</dt>
+    <dd>Time saved = SDPA kernel time &times; SFPU busy share on its working cores &times; exp share of SFPU cycles &times; (1 &minus; 128 / 1,356). FPU busy time is unchanged; utilizations are re-divided by the new layer time. The Quasar column (2k and up) reuses the two-thread model with the cheaper exp.</dd>
+    <dt>Floor</dt>
+    <dd>The row-max stage streams the same 64 score tiles through unpack in 9,260 cycles, so the subtract-and-exp stage could not drop much below that even with no waits.</dd>
+  </dl>
+  <p class="small muted">Computed with <code>tools/tracy/prefill_study/fast_exp_model.py</code>.</p>
+</section>
+
+<section aria-labelledby="h-offload">
+  <h2 id="h-offload">What-if: only QK&#7488; and PV on the FPU</h2>
+  <p class="muted">A model in which SDPA keeps only its two matmuls on the FPU and runs everything else on the SFPU: the row-max reduce, the subtract before the exp, and the correction's subtract, multiplies and add. That is about 192 element-wise tiles per 256-token chunk step, 2,812 FPU cycles today. It is combined with the two earlier what-ifs: separate FPU and SFPU threads (Quasar) and a single-cycle exp. It is a model, not a measurement.</p>
+
+  <h3>Cycles per SDPA chunk step, 256-token chunks</h3>
+  <div class="table-wrap">
+    <table id="off-table">
+      <thead>
+        <tr class="group"><th></th><th></th><th colspan="4" class="sep">one thread (Blackhole)</th><th colspan="4" class="sep">two threads (Quasar)</th></tr>
+        <tr><th>Exp</th><th>SDPA split</th><th class="sep">cycles</th><th>vs today</th><th>FPU busy</th><th>SFPU busy</th><th class="sep">cycles</th><th>vs today</th><th>FPU busy</th><th>SFPU busy</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="small muted">"Same cost": the moved work takes on the SFPU the cycles it takes on the FPU today. "SFPU rate": 128 cycles per tile, four single-cycle SFPU instructions per 32-lane slot, against about 15 on the FPU. Busy = share of the step in which that unit runs instructions.</p>
+
+  <h3>Two threads with a single-cycle exp</h3>
+  <p class="muted">The SFPU and FPU threads over 150,000 cycles for three ways of splitting SDPA. With matmuls only on the FPU, the SFPU thread runs the next chunk's row max and exp before the current chunk's correction; the exp needs only the new row max, so this order is allowed.</p>
+  <div class="chart-wrap" id="off-wrap">
+    <svg id="off" role="img" aria-label="Timelines of the FPU and SFPU threads over 150,000 cycles for three ways of splitting SDPA between the units, with a single-cycle exp"></svg>
+  </div>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>QK&#7488; matmul</span>
+    <span><i class="sw" style="background:var(--mx)"></i>Row max</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>Subtract + exp</span>
+    <span><i class="sw" style="background:var(--pv)"></i>PV matmul</span>
+    <span><i class="sw" style="background:var(--co)"></i>Correction</span>
+  </div>
+
+  <h3>Whole layer, two threads with a single-cycle exp</h3>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw" style="background:var(--mm)"></i>FPU, today's split</span>
+    <span><i class="sw" style="background:color-mix(in srgb, var(--mm) 30%, var(--surface));border:1.5px dashed var(--mm)"></i>FPU, matmuls only</span>
+    <span><i class="sw" style="background:var(--sdpa)"></i>SFPU, today's split</span>
+    <span><i class="sw" style="background:color-mix(in srgb, var(--sdpa) 30%, var(--surface));border:1.5px dashed var(--sdpa)"></i>SFPU, matmuls only</span>
+  </div>
+  <div class="chart-wrap" id="offu-wrap">
+    <svg id="offu" role="img" aria-label="Grouped bar chart of whole-layer FPU and SFPU utilization with two threads and a single-cycle exp, today's SDPA split against matmuls only on the FPU, for 2k to 32k tokens"></svg>
+  </div>
+  <div class="table-wrap">
+    <table id="offl-table">
+      <thead>
+        <tr class="group"><th></th><th class="sep"></th><th colspan="3" class="sep">two threads + single-cycle exp: layer time</th><th colspan="2" class="sep">FPU, %</th><th colspan="2" class="sep">SFPU, %</th></tr>
+        <tr><th>Prompt length</th><th class="sep">measured</th><th class="sep">today's split</th><th>matmuls only, same cost</th><th>matmuls only, SFPU rate</th><th class="sep">today's split</th><th>matmuls only</th><th class="sep">today's split</th><th>matmuls only</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <h3>What the model shows</h3>
+    <ol>
+      <li><strong>On one thread, moving work between units cannot make SDPA faster.</strong> At the same cost the step stays at 149,911 cycles and only the labels move: SDPA's FPU busy share goes from 23.7% to 21.9% and SFPU from 59.4% to 61.3% (whole layer at 32k: FPU 30.0 &rarr; 28.5%, SFPU 49.8 &rarr; 51.4%). At the SFPU's own rate the step grows 15%, to 171,669 cycles.</li>
+      <li><strong>With separate threads and today's exp, it makes things worse:</strong> 101,323 &rarr; 115,645 cycles. The SFPU thread is already the bottleneck, and now it also carries the row max and the correction.</li>
+      <li><strong>With separate threads and a single-cycle exp, it balances the threads:</strong> 48,588 &rarr; 37,060 cycles, 4.05&times; today against 3.09&times;. The FPU thread, running only QK&#7488; and PV, is busy 88% of the step and the SFPU thread runs back to back. The 32k layer would take 211 ms, against 246 ms with today's split and 556 ms measured.</li>
+      <li><strong>That gain needs an SFPU as quick as the FPU on element-wise tiles.</strong> At 128 cycles per tile instead of about 15, the step is 58,818 cycles, slower than leaving the work on the FPU, and the 32k layer takes 278 ms.</li>
+      <li><strong>Rule of thumb:</strong> move work to the thread that has slack, and only work that the receiving unit does at a similar cost. Today the SFPU has no slack; with a fast exp it does, and then its element-wise speed decides whether the move pays.</li>
+    </ol>
+  </div>
+  <dl class="defs">
+    <dt>Moved</dt>
+    <dd>Per step: the row-max reduce and copy (72 tiles), the subtract of subtract + exp (64) and the correction's element-wise work (56), from the FPU/SFPU split above. The per-Q-chunk row sum and normalize are under 0.1% of time at 256-token chunks and are left out.</dd>
+    <dt>Kept</dt>
+    <dd>Waits on unpack and pack stay as measured inside each stage. Stage costs otherwise as in the FPU/SFPU and single-cycle-exp sections.</dd>
+    <dt>Threads</dt>
+    <dd>FPU thread: QK&#7488; and PV. SFPU thread: row max, subtract + exp, correction. Two score buffers; each thread runs its work in order; a task starts when its inputs are ready. Row max needs QK&#7488; and the previous row max, exp needs the row max, PV needs the exp, the correction needs PV and the previous correction.</dd>
+    <dt>Per length</dt>
+    <dd>2k and up only (256-token chunks). SDPA time scales with the step time; SDPA's FPU and SFPU busy time scale with their busy cycles per step; whole-layer utilization is re-divided by the new layer time.</dd>
+  </dl>
+  <p class="small muted">Computed with <code>tools/tracy/prefill_study/sfpu_offload_model.py</code>.</p>
+</section>
+
+<section aria-labelledby="h-fpuclock">
+  <h2 id="h-fpuclock">What-if: a slower FPU clock on Quasar</h2>
+  <p class="muted">Could Quasar save power by running the FPU slower while it is underused? This section asks how far the FPU clock could drop in the Quasar two-thread SDPA model before a chunk step gets longer, and what that would and would not save. Stage costs are Blackhole's measured costs at 256-token chunks (2k and up). It is a model, not a measurement.</p>
+
+  <h3>FPU clock headroom during SDPA</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Exp</th><th>SDPA split</th><th>What sets the step</th><th>Step, cycles</th><th>Lowest FPU clock with no slowdown</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>measured</td><td>today's</td><td>SFPU thread (busy 100%)</td><td class="num">101,323</td><td class="num"><span class="meter"><i style="width:4.8rem"></i>40&ndash;48%</span></td></tr>
+        <tr><td>measured</td><td>matmuls only on the FPU</td><td>SFPU thread</td><td class="num">115,645</td><td class="num"><span class="meter"><i style="width:3rem"></i>30%</span></td></tr>
+        <tr><td>single-cycle</td><td>today's</td><td>FPU thread</td><td class="num">48,588</td><td class="num"><span class="meter"><i class="none" style="width:10rem"></i>100%, no headroom</span></td></tr>
+        <tr><td>single-cycle</td><td>matmuls only on the FPU</td><td>both threads, nearly balanced</td><td class="num">37,060</td><td class="num"><span class="meter"><i style="width:9.2rem"></i>92%</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">With today's split and exp, the 40% bound stretches only the FPU's busy cycles; the 48% bound also stretches its waits on unpack and pack. The matmul-only split with the measured exp has the most headroom but is slower overall than today's split (see the previous section).</p>
+
+  <h3>Where the headroom applies</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Prompt length</th><th>128</th><th>512</th><th>1k</th><th>2k</th><th>3k</th><th>4k</th><th>8k</th><th>16k</th><th>32k</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>SDPA share of layer time</td><td class="num">2.5%</td><td class="num">7.7%</td><td class="num">16.6%</td><td class="num">24.8%</td><td class="num">28.3%</td><td class="num">37.8%</td><td class="num">54.3%</td><td class="num">70.2%</td><td class="num">82.4%</td></tr>
+        <tr><td>SDPA share of the layer's FPU-busy cycles</td><td class="num">0.6%</td><td class="num">3.1%</td><td class="num">6.2%</td><td class="num">11.3%</td><td class="num">14.4%</td><td class="num">19.7%</td><td class="num">32.3%</td><td class="num">48.4%</td><td class="num">65.1%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Measured on Blackhole. The rest of the layer is mostly matmuls, which keep the FPU 64&ndash;87% busy and need its full clock.</p>
+
+  <div class="callout">
+    <h3>What the model shows</h3>
+    <ol>
+      <li><strong>With today's exp, the FPU has room during SDPA.</strong> The SFPU thread sets the step, and the FPU could run at 40&ndash;48% of its clock without lengthening it.</li>
+      <li><strong>A cheaper exp takes the room away.</strong> With a single-cycle exp the FPU thread sets the step and has no headroom; with matmuls only on the FPU the threads are nearly balanced (92%).</li>
+      <li><strong>Outside SDPA the roles flip.</strong> Matmul ops need the FPU at full clock while the SFPU sits idle. A useful policy would switch per phase: slow the FPU during SDPA, or the SFPU during matmuls. SDPA holds 65% of the layer's FPU-busy cycles at 32k but only 11% at 2k.</li>
+      <li><strong>A lower frequency on its own saves little.</strong> Energy per FPU operation scales with C&middot;V&sup2;. At the same voltage the FPU does the same work for the same energy, slow or fast, and SDPA takes as long as before, so leakage is unchanged. A lower clock removes only the clock-distribution energy and the toggling of idle cycles, which clock gating may already remove.</li>
+      <li><strong>Real savings need the voltage to drop with the frequency,</strong> on a power domain that holds the FPU. For example, a 20% lower voltage at half clock would cut the FPU's dynamic energy during SDPA by about 36% (0.8&sup2; = 0.64). The actual figure depends on Quasar's voltage&ndash;frequency curve.</li>
+    </ol>
+  </div>
+  <dl class="defs">
+    <dt>Method</dt>
+    <dd>The FPU-thread tasks of the Quasar model are stretched by a factor until the step grows by more than 0.1%; the lowest clock is 1 / that factor.</dd>
+    <dt>What the code shows</dt>
+    <dd>Quasar has separate clock domains for the data-movement cores and the Neo compute engines, both 1.4 GHz in the profiler code (<code>profiler_analysis.cpp</code>). Nothing found puts the FPU and SFPU in separate domains; both are in the Neo engine. Blackhole has one chip-wide clock with only a firmware busy/idle switch (200 ms timeout), while ops last from microseconds to tens of milliseconds.</dd>
+    <dt>Needed for watts</dt>
+    <dd>Whether the FPU and SFPU have their own clock and voltage domains, Quasar's voltage&ndash;frequency curve, how fast a domain can switch, whether idle FPU cycles are clock-gated, and the FPU's share of chip power.</dd>
+  </dl>
+  <p class="small muted">Computed with <code>tools/tracy/prefill_study/fpu_clock_slack.py</code>.</p>
+</section>
+
+<section aria-labelledby="h-table">
+  <h2 id="h-table">Corrected table</h2>
+  <p class="muted">Use these values in place of the sheet. Utilization is in %, weighted by op kernel time.</p>
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead>
+        <tr class="group"><th></th><th></th><th colspan="2" class="sep">share of kernel time</th><th colspan="2" class="sep">FPU in matmul</th><th colspan="2" class="sep">SFPU in SDPA</th></tr>
+        <tr><th>Prompt length</th><th>Layer kernel time</th><th class="sep">MatMul %</th><th>SDPA %</th><th class="sep">active core</th><th>full grid</th><th class="sep">active core</th><th>full grid</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="small muted">At 128 tokens only 32 of the 64 SDPA cores do any SFPU work. The median over those working cores is 40.77%, compared with 20.32% over all active cores. At 3072 tokens one op still runs padded: attention rounds the QKV matmul input up to a multiple of 2048 rows, so that matmul runs at 4096 rows and the layer gains a Pad and a Slice (23 ops instead of 21).</p>
+</section>
+
+<section aria-labelledby="h-diff">
+  <h2 id="h-diff">Sheet against corrected values</h2>
+  <p class="muted">Highlighted cells moved by at least 0.5 pt. For 2k and up the sheet's figures are the script's own output for the scope it picked, so those changes come from fixing the scope and the definition, not from copying errors. The 512 and 3072 rows changed most because they are now measured at their real length.</p>
+  <div class="table-wrap">
+    <table id="diff-table">
+      <thead>
+        <tr class="group"><th></th><th colspan="2" class="sep">MatMul %</th><th colspan="2" class="sep">SDPA %</th><th colspan="2" class="sep">FPU util</th><th colspan="2" class="sep">SFPU util</th></tr>
+        <tr><th>Prompt length</th><th class="sep">sheet</th><th>corrected</th><th class="sep">sheet</th><th>corrected</th><th class="sep">sheet</th><th>corrected</th><th class="sep">sheet</th><th>corrected</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="small muted">Small differences at 128 and 1k have a separate cause. The 128 row takes MatMul % and SDPA % from the earlier 03:49 report and SFPU from the 11:43 report. The 1k MatMul % in the latest report is 62.86, not 62.90.</p>
+</section>
+
+<section aria-labelledby="h-method">
+  <h2 id="h-method">Method</h2>
+  <dl class="defs">
+    <dt>Op scope</dt>
+    <dd>Embedding plus one decoder layer: 21 ops, from <code>Embeddings</code> to the MLP residual add. For 128 and 1k this is exactly the replayed prefill trace. For every other length it is the same ops picked out of the last eager forward pass, leaving out the final norm, the LM head (8 × <code>32×4096×16032</code> matmuls) and sampling.</dd>
+    <dt>Prompt length</dt>
+    <dd>Prefill normally rounds the prompt up to 128, 1024 or the next power of 2. The 512 and 3072 runs set <code>TT_PREFILL_MIN_PADDING=1</code>, which makes <code>test_model_prefill.py</code> round up only as far as the model needs (multiples of 128, 512 or 1024). Model and serving code are unchanged, and those runs are untraced, which affects host overhead but not device kernel time.</dd>
+    <dt>Matmul / SDPA</dt>
+    <dd>Op codes matching <code>matmul</code> (Matmul, MinimalMatmul) and <code>sdpa</code>. Shares are of total device kernel time in scope.</dd>
+    <dt>Active core</dt>
+    <dd>For each op, take the median over the cores that ran it of counter ÷ that core's counter window. Then average over ops, weighted by kernel time.</dd>
+    <dt>Full grid</dt>
+    <dd>For each op, take counter ÷ op kernel duration, averaged over all 110 worker cores with idle cores counted as 0. This is the chip-level number.</dd>
+    <dt>Counters</dt>
+    <dd>FPU and SFPU count the cycles in which an instruction is valid on that unit; MATH counts cycles in which either is. All three are read per core over the op's kernel window.</dd>
+  </dl>
+
+  <h3>Reproduce</h3>
+<pre><span class="c"># 128, 1k: prefill is traced, and the default scope is the trace replay</span>
+python tools/tracy/perf_util_report.py generated/profiler/prefill_1k_1dev
+
+<span class="c"># 2k, 4k and up: prefill is eager, so give the layer's op rows explicitly</span>
+python tools/tracy/perf_util_report.py generated/profiler/prefill_32k_1dev --ops-range 1113:1135
+
+<span class="c"># 512 and 3072 at their real length (capture, then analyse)</span>
+TT_PREFILL_MIN_PADDING=1 MAX_PREFILL_CHUNK_SIZE=32 python -m tracy -r -p -v \
+    --profiler-capture-perf-counters=fpu --op-support-count=100000 -o generated/profiler/prefill_3k_1dev_nopad \
+    -m "pytest models/tt_transformers/tests/test_model_prefill.py -k '1layer and not accuracy and max128k-3k-'"
+python tools/tracy/perf_util_report.py generated/profiler/prefill_3k_1dev_nopad --ops-range 658:682   <span class="c"># 512: 658:680</span>
+
+<span class="c"># read: SUMMARY → "Matmul % of total", "SDPA % of total",</span>
+<span class="c">#       FPU / SFPU blocks → tw-avg of "median per ACTIVE core" and "mean per FULL-GRID core"</span></pre>
+  <p class="small muted">The <code>--ops-range</code> form also picks up two small rotary-table <code>Slice</code> ops, so its shares come out within 0.04 pt of the table above.</p>
+
+  <h3>Data checks</h3>
+  <ul class="checks">
+    <li>Every run passed its PCC checks (output PCC 0.998 at every length).</li>
+    <li>No run log contains the profiler's "DRAM buffers were full, markers were dropped" warning.</li>
+    <li>Counter-derived per-op utilization matches the profiler's own ops CSV columns to within 10⁻¹⁴ pt, and raw kernel windows match the reported kernel durations to within 0.04%.</li>
+    <li>Every in-scope op has device timing, and every matmul and SDPA op has perf-counter data.</li>
+    <li>The nine SDPA stage-zone runs (<code>generated/profiler/sdpa_zones</code>, 2026-10-14) also passed PCC and dropped no profiler markers.</li>
+  </ul>
+</section>
+
+<section aria-labelledby="h-full">
+  <h2 id="h-full">Appendix: whole forward pass</h2>
+  <p class="muted">The same metrics with the final norm and LM head included, measured from the last eager forward pass at every length. Use this view if the LM head belongs in the comparison. The 2k, 4k and longer rows match the sheet's MatMul % and SDPA %.</p>
+  <div class="table-wrap">
+    <table id="full-table">
+      <thead>
+        <tr><th>Prompt length</th><th>Kernel time</th><th class="sep">MatMul %</th><th>SDPA %</th><th class="sep">FPU active core</th><th>FPU full grid</th><th class="sep">SFPU active core</th><th>SFPU full grid</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Source: <code>generated/profiler/prefill_*_1dev</code>, latest report in each run (2026-10-13), except 512 and 3072, which come from <code>prefill_512_1dev_nopad</code> and <code>prefill_3k_1dev_nopad</code> (2026-10-14). Analysed with <code>tools/tracy/perf_util_report.py</code>.
+</footer>
+
+</div>
+
+<script>
+const DATA = [
+  {seq:128,   pad:128,   rep:"11_43_16", L:{t:1330.1,  mm:77.48,sd:2.46, fa:45.76,ff:13.04,sa:20.32,sf:11.29}, F:{t:3380.5,  mm:86.42,sd:0.97, fa:16.14,ff:8.41, sa:20.32,sf:11.29}, S:{mm:77.45,sd:2.45, f:45.80,s:20.32}},
+  {seq:512,   pad:512,   rep:"14_55_33", L:{t:2253.1,  mm:70.81,sd:7.65, fa:66.17,ff:35.23,sa:45.92,sf:26.46}, F:{t:4552.7,  mm:81.82,sd:3.78, fa:28.34,ff:18.08,sa:45.92,sf:26.46}, S:{mm:62.05,sd:16.33,f:79.24,s:47.11}},
+  {seq:1024,  pad:1024,  rep:"12_00_41", L:{t:3830.6,  mm:62.86,sd:16.55,fa:79.35,ff:46.45,sa:47.09,sf:27.34}, F:{t:5881.3,  mm:73.08,sd:10.78,fa:44.45,ff:28.62,sa:47.09,sf:27.34}, S:{mm:62.90,sd:16.55,f:79.35,s:47.09}},
+  {seq:2048,  pad:2048,  rep:"12_08_59", L:{t:8122.0,  mm:57.91,sd:24.75,fa:78.53,ff:46.40,sa:58.89,sf:34.20}, F:{t:10178.9, mm:64.78,sd:19.75,fa:56.02,ff:34.79,sa:58.89,sf:34.20}, S:{mm:64.78,sd:19.75,f:79.36,s:58.89}},
+  {seq:3072,  pad:3072,  rep:"15_02_07", L:{t:15319.9, mm:54.24,sd:28.33,fa:73.27,ff:41.16,sa:59.10,sf:34.35}, F:{t:17626.0, mm:59.22,sd:24.62,fa:58.32,ff:33.83,sa:59.10,sf:34.35}, S:{mm:51.86,sd:34.20,f:76.69,s:59.21}},
+  {seq:4096,  pad:4096,  rep:"12_37_55", L:{t:19960.0, mm:47.99,sd:37.84,fa:75.66,ff:45.02,sa:59.21,sf:34.43}, F:{t:22022.3, mm:52.08,sd:34.30,fa:63.19,ff:38.57,sa:59.21,sf:34.43}, S:{mm:52.08,sd:34.30,f:76.61,s:59.21}},
+  {seq:8192,  pad:8192,  rep:"12_44_58", L:{t:53914.2, mm:35.42,sd:54.32,fa:75.75,ff:45.35,sa:59.33,sf:34.51}, F:{t:55988.6, mm:37.48,sd:52.31,fa:68.93,ff:41.80,sa:59.33,sf:34.51}, S:{mm:37.48,sd:52.31,f:76.26,s:59.33}},
+  {seq:16384, pad:16384, rep:"12_58_38", L:{t:164383.1,mm:23.18,sd:70.16,fa:75.77,ff:45.46,sa:59.37,sf:34.54}, F:{t:166478.0,mm:24.02,sd:69.28,fa:72.19,ff:43.59,sa:59.37,sf:34.54}, S:{mm:24.02,sd:69.27,f:76.04,s:59.37}},
+  {seq:32768, pad:32768, rep:"13_10_01", L:{t:555724.6,mm:13.70,sd:82.38,fa:75.71,ff:45.48,sa:59.38,sf:34.55}, F:{t:557867.0,mm:13.99,sd:82.06,fa:73.88,ff:44.52,sa:59.38,sf:34.55}, S:{mm:13.99,sd:82.06,f:75.85,s:59.38}},
+];
+
+const NS = "http://www.w3.org/2000/svg";
+const fmtSeq = n => n.toLocaleString("en-US");
+const fmtTime = us => us >= 10000 ? (us / 1000).toFixed(0) + " ms" : us >= 1000 ? (us / 1000).toFixed(2) + " ms" : us.toFixed(0) + " µs";
+const f2 = v => v.toFixed(2);
+function el(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function tipFor(wrap) {
+  const t = document.createElement("div");
+  t.className = "tip"; t.hidden = true; wrap.appendChild(t);
+  return {
+    show(html, x, y) {
+      t.innerHTML = html; t.hidden = false;
+      const w = wrap.getBoundingClientRect(), tw = t.offsetWidth, th = t.offsetHeight;
+      let left = x - w.left + wrap.scrollLeft + 14, top = y - w.top - th - 10;
+      if (left + tw > wrap.scrollWidth - 4) left = x - w.left + wrap.scrollLeft - tw - 14;
+      if (top < 4) top = y - w.top + 16;
+      t.style.left = left + "px"; t.style.top = top + "px";
+    },
+    hide() { t.hidden = true; }
+  };
+}
+
+/* ---- Chart 1: 100% stacked bars ---- */
+(function () {
+  const svg = document.getElementById("share");
+  const wrap = document.getElementById("share-wrap");
+  const tip = tipFor(wrap);
+  const W = 880, rowH = 34, barH = 22, top = 8, left = 118, right = 84;
+  const H = top + DATA.length * rowH + 30;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const pw = W - left - right;
+  const x = p => left + p / 100 * pw;
+  // grid
+  [0, 25, 50, 75, 100].forEach(p => {
+    el("line", {x1: x(p), x2: x(p), y1: top - 4, y2: top + DATA.length * rowH, stroke: "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: x(p), y: H - 10, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, p + "%");
+  });
+  DATA.forEach((d, i) => {
+    const y = top + i * rowH + (rowH - barH) / 2;
+    const dup = d.pad !== d.seq;
+    const g = el("g", {tabindex: 0, "aria-label": `${fmtSeq(d.seq)} tokens: matmul ${f2(d.L.mm)}%, SDPA ${f2(d.L.sd)}%, other ${f2(100 - d.L.mm - d.L.sd)}%, ${fmtTime(d.L.t)}`, style: "outline:none"}, svg);
+    el("text", {x: left - 12, y: y + barH / 2 + (dup ? -1 : 4), "text-anchor": "end", "font-size": 13, "font-weight": 500, fill: dup ? "var(--ink-3)" : "var(--ink)"}, g, fmtSeq(d.seq));
+    if (dup) el("text", {x: left - 12, y: y + barH / 2 + 12, "text-anchor": "end", "font-size": 10, fill: "var(--flag)", "font-family": "var(--font-mono)"}, g, "runs at " + fmtSeq(d.pad));
+    const segs = [["mm", d.L.mm, "var(--mm)", "#fff"], ["sd", d.L.sd, "var(--sdpa)", "#15191e"], ["ot", 100 - d.L.mm - d.L.sd, "var(--other)", "var(--ink)"]];
+    const cp = el("clipPath", {id: "bar" + i}, svg);
+    el("rect", {x: left, y, width: pw, height: barH, rx: 4}, cp);
+    const bar = el("g", {"clip-path": `url(#bar${i})`, opacity: dup ? 0.55 : 1}, g);
+    let acc = 0;
+    segs.forEach(([k, v, c, tc], j) => {
+      const x0 = x(acc), w = v / 100 * pw;
+      const gap = j < segs.length - 1 ? 2 : 0;
+      el("rect", {x: x0, y, width: Math.max(0, w - gap), height: barH, fill: c}, bar);
+      if (w > 46 && k !== "ot") el("text", {x: x0 + 7, y: y + barH / 2 + 4, "font-size": 11, "font-weight": 600, fill: tc, "font-family": "var(--font-mono)"}, bar, v.toFixed(1) + "%");
+      acc += v;
+    });
+    el("text", {x: W - right + 10, y: y + barH / 2 + 4, "font-size": 12, fill: "var(--ink-2)", "font-family": "var(--font-mono)"}, g, fmtTime(d.L.t));
+    const hit = el("rect", {x: 0, y: top + i * rowH, width: W, height: rowH, fill: "transparent"}, g);
+    const html = `<b>${fmtSeq(d.seq)} tokens</b>${dup ? " (runs at " + fmtSeq(d.pad) + ")" : ""}<br>` +
+      `<span class="k" style="background:var(--mm)"></span>Matmul ${f2(d.L.mm)}%<br>` +
+      `<span class="k" style="background:var(--sdpa)"></span>SDPA ${f2(d.L.sd)}%<br>` +
+      `<span class="k" style="background:var(--other)"></span>Other ${f2(100 - d.L.mm - d.L.sd)}%<br>` +
+      `Layer kernel time ${fmtTime(d.L.t)}`;
+    hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+    hit.addEventListener("pointerleave", () => tip.hide());
+    g.addEventListener("focus", () => { const r = hit.getBoundingClientRect(); tip.show(html, r.left + r.width * 0.6, r.top); });
+    g.addEventListener("blur", () => tip.hide());
+  });
+})();
+
+/* ---- Chart 2: utilization lines ---- */
+(function () {
+  const svg = document.getElementById("util");
+  const wrap = document.getElementById("util-wrap");
+  const tip = tipFor(wrap);
+  const W = 880, H = 330, left = 44, right = 150, top = 14, bottom = 44;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const pw = W - left - right, ph = H - top - bottom;
+  const x = i => left + (i + 0.5) / DATA.length * pw;
+  const y = v => top + (1 - v / 100) * ph;
+  [0, 20, 40, 60, 80, 100].forEach(v => {
+    el("line", {x1: left, x2: left + pw, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--rule)" : "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: left - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)"}, svg, v + "%");
+  });
+  DATA.forEach((d, i) => {
+    const dup = d.pad !== d.seq;
+    el("text", {x: x(i), y: H - bottom + 18, "text-anchor": "middle", "font-size": 11, fill: dup ? "var(--ink-3)" : "var(--ink-2)"}, svg, d.seq >= 1024 ? (d.seq / 1024) + "k" : d.seq);
+    if (dup) el("text", {x: x(i), y: H - bottom + 31, "text-anchor": "middle", "font-size": 9.5, fill: "var(--flag)", "font-family": "var(--font-mono)"}, svg, "→" + (d.pad / 1024) + "k");
+  });
+  el("text", {x: left + pw / 2, y: H - 2, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, "prompt length (tokens)");
+  const series = [
+    {k: "fa", name: "FPU, active core", color: "var(--mm)", dash: null},
+    {k: "ff", name: "FPU, full grid", color: "var(--mm)", dash: "6 4"},
+    {k: "sa", name: "SFPU, active core", color: "var(--sdpa)", dash: null},
+    {k: "sf", name: "SFPU, full grid", color: "var(--sdpa)", dash: "6 4"},
+  ];
+  const cross = el("line", {y1: top, y2: top + ph, stroke: "var(--ink-3)", "stroke-width": 1, "stroke-dasharray": "2 3", visibility: "hidden"}, svg);
+  series.forEach(s => {
+    const pts = DATA.map((d, i) => `${x(i)},${y(d.L[s.k])}`).join(" ");
+    const a = {points: pts, fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round"};
+    if (s.dash) a["stroke-dasharray"] = s.dash;
+    el("polyline", a, svg);
+    DATA.forEach((d, i) => {
+      el("circle", {cx: x(i), cy: y(d.L[s.k]), r: s.dash ? 3 : 4, fill: s.dash ? "var(--surface)" : s.color, stroke: s.dash ? s.color : "var(--surface)", "stroke-width": 2}, svg);
+    });
+  });
+  // direct labels at the right end, de-collided
+  const last = DATA.length - 1;
+  const labs = series.map(s => ({s, v: DATA[last].L[s.k], y: y(DATA[last].L[s.k])})).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 15) labs[i].y = labs[i - 1].y + 15;
+  labs.forEach(l => el("text", {x: x(last) + 12, y: l.y + 4, "font-size": 11.5, fill: "var(--ink-2)"}, svg, `${l.s.name} ${l.v.toFixed(1)}%`));
+  // hover columns
+  DATA.forEach((d, i) => {
+    const r = el("rect", {x: left + i / DATA.length * pw, y: top, width: pw / DATA.length, height: ph, fill: "transparent", tabindex: 0, style: "outline:none", "aria-label": `${fmtSeq(d.seq)} tokens: FPU active ${f2(d.L.fa)}%, FPU full grid ${f2(d.L.ff)}%, SFPU active ${f2(d.L.sa)}%, SFPU full grid ${f2(d.L.sf)}%`}, svg);
+    const dup = d.pad !== d.seq;
+    const html = `<b>${fmtSeq(d.seq)} tokens</b>${dup ? " (runs at " + fmtSeq(d.pad) + ")" : ""}<br>` +
+      series.map(s => `<span class="k" style="background:${s.color}"></span>${s.name} ${f2(d.L[s.k])}%`).join("<br>");
+    const on = (cx, cy) => { cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible"); tip.show(html, cx, cy); };
+    r.addEventListener("pointermove", e => on(e.clientX, e.clientY));
+    r.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); tip.hide(); });
+    r.addEventListener("focus", () => { const b = r.getBoundingClientRect(); on(b.left + b.width / 2, b.top + 40); });
+    r.addEventListener("blur", () => { cross.setAttribute("visibility", "hidden"); tip.hide(); });
+  });
+})();
+
+/* ---- Whole-layer FPU / SFPU utilization (layer_units.py) ---- */
+const LU = [
+  {seq: 128, t: 1330.1, fpu: 36.77, sfpu: 2.30, either: 39.07, f: {mm: 35.47, sd: 0.22, ot: 1.09}, s: {sd: 0.50, si: 1.69, ot: 0.11}},
+  {seq: 512, t: 2253.1, fpu: 48.71, sfpu: 7.09, either: 55.80, f: {mm: 46.41, sd: 1.50, ot: 0.80}, s: {sd: 3.51, si: 3.52, ot: 0.06}},
+  {seq: 1024, t: 3830.6, fpu: 53.61, sfpu: 11.91, either: 65.53, f: {mm: 49.73, sd: 3.30, ot: 0.58}, s: {sd: 7.79, si: 4.08, ot: 0.04}},
+  {seq: 2048, t: 8122.0, fpu: 51.66, sfpu: 18.42, either: 70.08, f: {mm: 45.39, sd: 5.86, ot: 0.41}, s: {sd: 14.58, si: 3.83, ot: 0.02}},
+  {seq: 3072, t: 15319.9, fpu: 46.73, sfpu: 19.79, either: 66.52, f: {mm: 39.69, sd: 6.72, ot: 0.33}, s: {sd: 16.74, si: 3.04, ot: 0.01}},
+  {seq: 4096, t: 19960.0, fpu: 45.55, sfpu: 25.53, either: 71.08, f: {mm: 36.27, sd: 8.98, ot: 0.31}, s: {sd: 22.41, si: 3.11, ot: 0.01}},
+  {seq: 8192, t: 53914.2, fpu: 39.95, sfpu: 34.54, either: 74.49, f: {mm: 26.82, sd: 12.89, ot: 0.23}, s: {sd: 32.23, si: 2.30, ot: 0.01}},
+  {seq: 16384, t: 164383.1, fpu: 34.37, sfpu: 43.17, either: 77.54, f: {mm: 17.55, sd: 16.65, ot: 0.16}, s: {sd: 41.65, si: 1.51, ot: 0.01}},
+  {seq: 32768, t: 555724.6, fpu: 30.02, sfpu: 49.81, either: 79.84, f: {mm: 10.37, sd: 19.55, ot: 0.10}, s: {sd: 48.92, si: 0.89, ot: 0.00}},
+];
+(function () {
+  const svg = document.getElementById("lu");
+  const wrap = document.getElementById("lu-wrap");
+  const tip = tipFor(wrap);
+  const W = 880, H = 330, left = 48, right = 16, top = 16, bottom = 44, max = 60;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const pw = W - left - right, ph = H - top - bottom;
+  const gw = pw / LU.length, bw = Math.min(30, gw * 0.32);
+  const y = v => top + (1 - v / max) * ph;
+  [0, 10, 20, 30, 40, 50, 60].forEach(v => {
+    el("line", {x1: left, x2: left + pw, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--rule)" : "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: left - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)"}, svg, v + "%");
+  });
+  el("text", {x: 14, y: top + ph / 2, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)", transform: `rotate(-90 14 ${top + ph / 2})`}, svg, "utilization, active cores");
+  el("text", {x: left + pw / 2, y: H - 4, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, "prompt length (tokens)");
+  LU.forEach((d, i) => {
+    const cx = left + (i + 0.5) * gw;
+    el("text", {x: cx, y: top + ph + 18, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-2)"}, svg, d.seq >= 1024 ? (d.seq / 1024) + "k" : d.seq);
+    [[d.fpu, "var(--mm)", cx - bw - 1], [d.sfpu, "var(--sdpa)", cx + 1]].forEach(([v, c, x]) => {
+      const h = y(0) - y(v);
+      const r = Math.min(4, h);
+      el("path", {d: `M${x},${y(0)} L${x},${y(v) + r} Q${x},${y(v)} ${x + r},${y(v)} L${x + bw - r},${y(v)} Q${x + bw},${y(v)} ${x + bw},${y(v) + r} L${x + bw},${y(0)} Z`, fill: c}, svg);
+      el("text", {x: x + bw / 2, y: y(v) - 5, "text-anchor": "middle", "font-size": 10.5, fill: "var(--ink-2)", "font-family": "var(--font-mono)"}, svg, v.toFixed(1));
+    });
+    const hit = el("rect", {x: left + i * gw, y: top, width: gw, height: ph, fill: "transparent", tabindex: 0, style: "outline:none",
+      "aria-label": `${fmtSeq(d.seq)} tokens: FPU ${f2(d.fpu)}%, SFPU ${f2(d.sfpu)}%`}, svg);
+    const html = `<b>${fmtSeq(d.seq)} tokens</b> &middot; layer ${fmtTime(d.t)}<br>` +
+      `<span class="k" style="background:var(--mm)"></span>FPU ${f2(d.fpu)}% = matmul ops ${f2(d.f.mm)} + SDPA ${f2(d.f.sd)} + other ${f2(d.f.ot)}<br>` +
+      `<span class="k" style="background:var(--sdpa)"></span>SFPU ${f2(d.sfpu)}% = SDPA ${f2(d.s.sd)} + SiLU×mul ${f2(d.s.si)} + other ${f2(d.s.ot)}<br>` +
+      `Either unit busy ${f2(d.either)}%`;
+    hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+    hit.addEventListener("pointerleave", () => tip.hide());
+    hit.addEventListener("focus", () => { const b = hit.getBoundingClientRect(); tip.show(html, b.left + b.width / 2, b.top + 30); });
+    hit.addEventListener("blur", () => tip.hide());
+  });
+  document.querySelector("#lu-table tbody").innerHTML = LU.map(d =>
+    `<tr><td>${fmtSeq(d.seq)}</td><td class="num sep"><b>${f2(d.fpu)}</b></td><td class="num">${f2(d.f.mm)}</td><td class="num">${f2(d.f.sd)}</td><td class="num">${f2(d.f.ot)}</td>` +
+    `<td class="num sep"><b>${f2(d.sfpu)}</b></td><td class="num">${f2(d.s.sd)}</td><td class="num">${f2(d.s.si)}</td><td class="num">${f2(d.s.ot)}</td>` +
+    `<td class="num sep">${f2(d.either)}</td></tr>`).join("");
+})();
+
+/* ---- Chart 3: SDPA stages ---- */
+const SDPA = [
+  {seq:128, chunk:64, t:33.3, cov:96.0, qk:16.27, se:46.98, pv:6.40, mx:11.42, co:6.33, ot:12.59, us:{qk:1.63, se:4.72, pv:0.64}},
+  {seq:512, chunk:64, t:176.7, cov:97.5, qk:9.52, se:50.08, pv:6.73, mx:14.17, co:15.16, ot:4.34, us:{qk:0.90, se:4.72, pv:0.63}},
+  {seq:1024, chunk:64, t:645.5, cov:99.2, qk:8.76, se:50.28, pv:6.74, mx:14.51, co:17.37, ot:2.33, us:{qk:0.82, se:4.71, pv:0.63}},
+  {seq:2048, chunk:256, t:2012.8, cov:99.8, qk:11.91, se:65.98, pv:11.10, mx:5.95, co:3.80, ot:1.26, us:{qk:13.24, se:73.37, pv:12.34}},
+  {seq:3072, chunk:256, t:4340.3, cov:100.0, qk:11.78, se:66.05, pv:11.11, mx:6.04, co:4.15, ot:0.87, us:{qk:13.08, se:73.37, pv:12.34}},
+  {seq:4096, chunk:256, t:7553.2, cov:100.1, qk:11.78, se:66.08, pv:11.11, mx:6.04, co:4.32, ot:0.67, us:{qk:13.08, se:73.37, pv:12.34}},
+  {seq:8192, chunk:256, t:29271.0, cov:100.2, qk:11.75, se:66.05, pv:11.11, mx:6.15, co:4.60, ot:0.35, us:{qk:13.05, se:73.37, pv:12.34}},
+  {seq:16384, chunk:256, t:115273.5, cov:100.2, qk:11.76, se:66.06, pv:11.11, mx:6.15, co:4.75, ot:0.18, us:{qk:13.06, se:73.37, pv:12.34}},
+  {seq:32768, chunk:256, t:457502.0, cov:100.2, qk:11.74, se:66.06, pv:11.11, mx:6.18, co:4.82, ot:0.09, us:{qk:13.04, se:73.37, pv:12.34}},
+];
+(function () {
+  const svg = document.getElementById("sdpa");
+  const wrap = document.getElementById("sdpa-wrap");
+  const tip = tipFor(wrap);
+  const W = 880, rowH = 34, barH = 22, top = 8, left = 118, right = 84;
+  const H = top + SDPA.length * rowH + 30;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const pw = W - left - right;
+  const x = p => left + p / 100 * pw;
+  [0, 25, 50, 75, 100].forEach(p => {
+    el("line", {x1: x(p), x2: x(p), y1: top - 4, y2: top + SDPA.length * rowH, stroke: "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: x(p), y: H - 10, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, p + "%");
+  });
+  const segDefs = [["qk", "QKᵀ matmul", "var(--mm)", "#fff"], ["se", "Subtract + exp", "var(--sdpa)", "#15191e"], ["pv", "PV matmul", "var(--pv)", "#15191e"],
+                   ["mx", "Row max", "var(--mx)", "#15191e"], ["co", "Correction", "var(--co)", "#15191e"], ["ot", "Mask, row sum, normalize", "var(--other)", "var(--ink)"]];
+  SDPA.forEach((d, i) => {
+    const y = top + i * rowH + (rowH - barH) / 2;
+    const g = el("g", {tabindex: 0, style: "outline:none", "aria-label": `${fmtSeq(d.seq)} tokens: ` + segDefs.map(([k, n]) => `${n} ${f2(d[k])}%`).join(", ")}, svg);
+    el("text", {x: left - 12, y: y + barH / 2 - 1, "text-anchor": "end", "font-size": 13, "font-weight": 500, fill: "var(--ink)"}, g, fmtSeq(d.seq));
+    el("text", {x: left - 12, y: y + barH / 2 + 12, "text-anchor": "end", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, g, d.chunk + "-tok chunks");
+    const cp = el("clipPath", {id: "sbar" + i}, svg);
+    el("rect", {x: left, y, width: pw, height: barH, rx: 4}, cp);
+    const bar = el("g", {"clip-path": `url(#sbar${i})`}, g);
+    let acc = 0;
+    segDefs.forEach(([k, n, c, tc], j) => {
+      const v = d[k], x0 = x(acc), w = v / 100 * pw, gap = j < segDefs.length - 1 ? 2 : 0;
+      el("rect", {x: x0, y, width: Math.max(0, w - gap), height: barH, fill: c}, bar);
+      if (w > 40 && k !== "ot") el("text", {x: x0 + 6, y: y + barH / 2 + 4, "font-size": 11, "font-weight": 600, fill: tc, "font-family": "var(--font-mono)"}, bar, v.toFixed(0) + "%");
+      acc += v;
+    });
+    el("text", {x: W - right + 10, y: y + barH / 2 + 4, "font-size": 12, fill: "var(--ink-2)", "font-family": "var(--font-mono)"}, g, fmtTime(d.t));
+    const hit = el("rect", {x: 0, y: top + i * rowH, width: W, height: rowH, fill: "transparent"}, g);
+    const html = `<b>${fmtSeq(d.seq)} tokens</b> (${d.chunk}-token chunks)<br>` +
+      segDefs.map(([k, n, c]) => `<span class="k" style="background:${c}"></span>${n} ${f2(d[k])}%`).join("<br>") +
+      `<br>SDPA kernel time ${fmtTime(d.t)}`;
+    hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+    hit.addEventListener("pointerleave", () => tip.hide());
+    g.addEventListener("focus", () => { const b = hit.getBoundingClientRect(); tip.show(html, b.left + b.width * 0.6, b.top); });
+    g.addEventListener("blur", () => tip.hide());
+  });
+  document.querySelector("#sdpa-table tbody").innerHTML = SDPA.map(d =>
+    `<tr><td>${fmtSeq(d.seq)}</td><td class="num">${d.chunk}</td><td class="num">${fmtTime(d.t)}</td>` +
+    `<td class="num sep">${f2(d.qk)}</td><td class="num">${f2(d.se)}</td><td class="num">${f2(d.pv)}</td><td class="num">${f2(d.mx)}</td><td class="num">${f2(d.co)}</td><td class="num">${f2(d.ot)}</td>` +
+    `<td class="num sep">${f2(d.us.qk)}</td><td class="num">${f2(d.us.se)}</td><td class="num">${f2(d.us.pv)}</td></tr>`).join("");
+})();
+
+/* ---- Chart 4: FPU / SFPU / idle cycles per SDPA stage (256-token chunks, one K-chunk step) ---- */
+const UNITS = [
+  {stage: "QKᵀ matmul", cyc: 17604, fpu: 16384, sfpu: 0},
+  {stage: "Subtract + exp", cyc: 99050, fpu: 939, sfpu: 86783},
+  {stage: "PV matmul", cyc: 16659, fpu: 16384, sfpu: 0},
+  {stage: "Row max", cyc: 9261, fpu: 1057, sfpu: 1134},
+  {stage: "Correction", cyc: 7344, fpu: 822, sfpu: 1134},
+];
+(function () {
+  const svg = document.getElementById("units");
+  const wrap = document.getElementById("units-wrap");
+  const tip = tipFor(wrap);
+  const W = 880, rowH = 38, barH = 24, top = 8, left = 128, right = 96;
+  const H = top + UNITS.length * rowH + 34;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const pw = W - left - right, max = 100000;
+  const x = c => left + c / max * pw;
+  const fmtC = c => c.toLocaleString("en-US");
+  [0, 25000, 50000, 75000, 100000].forEach(c => {
+    el("line", {x1: x(c), x2: x(c), y1: top - 4, y2: top + UNITS.length * rowH, stroke: "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: x(c), y: H - 14, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, c === 0 ? "0" : (c / 1000) + "k");
+  });
+  el("text", {x: left + pw / 2, y: H - 1, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, "cycles per chunk step (1,350 per µs)");
+  UNITS.forEach((d, i) => {
+    const y = top + i * rowH + (rowH - barH) / 2;
+    const idle = d.cyc - d.fpu - d.sfpu;
+    const g = el("g", {tabindex: 0, style: "outline:none", "aria-label": `${d.stage}: ${fmtC(d.cyc)} cycles; FPU ${fmtC(d.fpu)}, SFPU ${fmtC(d.sfpu)}, neither ${fmtC(idle)}`}, svg);
+    el("text", {x: left - 12, y: y + barH / 2 + 4, "text-anchor": "end", "font-size": 13, "font-weight": 500, fill: "var(--ink)"}, g, d.stage);
+    const segs = [[d.fpu, "var(--mm)", "#fff"], [d.sfpu, "var(--sdpa)", "#15191e"], [idle, "var(--other)", "var(--ink)"]].filter(s => s[0] > 0);
+    const cp = el("clipPath", {id: "ubar" + i}, svg);
+    el("rect", {x: left, y, width: d.cyc / max * pw, height: barH, rx: 4}, cp);
+    const bar = el("g", {"clip-path": `url(#ubar${i})`}, g);
+    let acc = 0;
+    segs.forEach(([v, c, tc], j) => {
+      const x0 = x(acc), w = v / max * pw, gap = j < segs.length - 1 ? 2 : 0;
+      el("rect", {x: x0, y, width: Math.max(0, w - gap), height: barH, fill: c}, bar);
+      if (w > 44) el("text", {x: x0 + 6, y: y + barH / 2 + 4, "font-size": 11, "font-weight": 600, fill: tc, "font-family": "var(--font-mono)"}, bar, (v / d.cyc * 100).toFixed(0) + "%");
+      acc += v;
+    });
+    el("text", {x: x(d.cyc) + 8, y: y + barH / 2 + 4, "font-size": 12, fill: "var(--ink-2)", "font-family": "var(--font-mono)"}, g, fmtC(d.cyc));
+    const hit = el("rect", {x: 0, y: top + i * rowH, width: W, height: rowH, fill: "transparent"}, g);
+    const pc = v => (v / d.cyc * 100).toFixed(1) + "%";
+    const html = `<b>${d.stage}</b> &middot; ${fmtC(d.cyc)} cycles<br>` +
+      `<span class="k" style="background:var(--mm)"></span>FPU ${fmtC(d.fpu)} (${pc(d.fpu)})<br>` +
+      `<span class="k" style="background:var(--sdpa)"></span>SFPU ${fmtC(d.sfpu)} (${pc(d.sfpu)})<br>` +
+      `<span class="k" style="background:var(--other)"></span>Neither ${fmtC(idle)} (${pc(idle)})`;
+    hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+    hit.addEventListener("pointerleave", () => tip.hide());
+    g.addEventListener("focus", () => { const b = hit.getBoundingClientRect(); tip.show(html, b.left + b.width * 0.5, b.top); });
+    g.addEventListener("blur", () => tip.hide());
+  });
+  const pc = (v, t) => (v / t * 100).toFixed(1);
+  document.querySelector("#units-table tbody").innerHTML = UNITS.map(d => {
+    const idle = d.cyc - d.fpu - d.sfpu;
+    return `<tr><td>${d.stage}</td><td class="num">${fmtC(d.cyc)}</td>` +
+      `<td class="num sep">${fmtC(d.fpu)}</td><td class="num">${pc(d.fpu, d.cyc)}</td>` +
+      `<td class="num sep">${fmtC(d.sfpu)}</td><td class="num">${pc(d.sfpu, d.cyc)}</td>` +
+      `<td class="num sep">${fmtC(idle)}</td><td class="num">${pc(idle, d.cyc)}</td></tr>`;
+  }).join("");
+})();
+
+/* ---- Dependencies: shared bits ---- */
+const CAT = {
+  mm: {stroke: "var(--mm)", fill: "color-mix(in srgb, var(--mm) 16%, var(--surface))"},
+  sdpa: {stroke: "var(--sdpa)", fill: "color-mix(in srgb, var(--sdpa) 18%, var(--surface))"},
+  ot: {stroke: "var(--ink-3)", fill: "var(--surface)"},
+};
+function arrowDefs(svg, id) {
+  const defs = el("defs", {}, svg);
+  [["a", "var(--ink-3)"], ["b", "var(--ink)"]].forEach(([k, c]) => {
+    const m = el("marker", {id: id + k, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse"}, defs);
+    el("path", {d: "M0,1 L9,5 L0,9 z", fill: c}, m);
+  });
+}
+
+/* ---- Layer data-flow graph (4k) ---- */
+const LAYER = [
+  {id: "Emb", label: "Embeddings", code: "Embeddings", us: 209.582, cat: "ot", c: 0, y: 112},
+  {id: "Rope", label: "RoPE slices ×2", code: "Slice ×2 (cos/sin tables)", us: 11.95, cat: "ot", c: 3, y: 46},
+  {id: "LN1", label: "LayerNorm", code: "LayerNorm (attention norm)", us: 194.159, cat: "ot", c: 1, y: 112},
+  {id: "QKV", label: "QKV matmul", code: "MinimalMatmul 4096×4096×6144", us: 1145.433, cat: "mm", c: 2, y: 112},
+  {id: "Heads", label: "Create heads", code: "NlpCreateHeads", us: 238.579, cat: "ot", c: 3, y: 112},
+  {id: "RotQ", label: "RoPE Q", code: "RotaryEmbeddingLlama, 32 heads", us: 309.819, cat: "ot", c: 4, y: 112},
+  {id: "RotK", label: "RoPE K", code: "RotaryEmbeddingLlama, 8 heads", us: 83.098, cat: "ot", c: 4, y: 178},
+  {id: "TcV", label: "Typecast V", code: "Typecast to bfp8", us: 30.526, cat: "ot", c: 4, y: 244},
+  {id: "TcQ", label: "Typecast Q", code: "Typecast to bfp8", us: 115.407, cat: "ot", c: 5, y: 112},
+  {id: "TcK", label: "Typecast K", code: "Typecast to bfp8", us: 29.689, cat: "ot", c: 5, y: 178},
+  {id: "FillV", label: "Fill cache V", code: "PagedFillCache", us: 22.773, cat: "ot", c: 5, y: 244},
+  {id: "SDPA", label: "SDPA", code: "SDPA, causal", us: 7553.548, cat: "sdpa", c: 6, y: 112},
+  {id: "FillK", label: "Fill cache K", code: "PagedFillCache", us: 22.996, cat: "ot", c: 6, y: 178},
+  {id: "Concat", label: "Concat heads", code: "NLPConcatHeads", us: 96.257, cat: "ot", c: 7, y: 112},
+  {id: "Wo", label: "Wo matmul", code: "Matmul 4096×4096×4096", us: 923.266, cat: "mm", c: 8, y: 112},
+  {id: "Add1", label: "Add residual", code: "BinaryNg add", us: 189.755, cat: "ot", c: 9, y: 112},
+  {id: "LN2", label: "LayerNorm", code: "LayerNorm (MLP norm)", us: 194.298, cat: "ot", c: 5, y: 340},
+  {id: "W1", label: "W1 matmul", code: "Matmul 4096×4096×14336", us: 2185.773, cat: "mm", c: 6, y: 340},
+  {id: "W3", label: "W3 matmul", code: "Matmul 4096×4096×14336", us: 2179.932, cat: "mm", c: 6, y: 406},
+  {id: "Mul", label: "SiLU × mul", code: "BinaryNg multiply, SiLU on W1 output", us: 900.417, cat: "ot", c: 7, y: 340},
+  {id: "W2", label: "W2 matmul", code: "MinimalMatmul 4096×14336×4096", us: 3144.506, cat: "mm", c: 8, y: 340},
+  {id: "Add2", label: "Add residual", code: "BinaryNg add", us: 190.179, cat: "ot", c: 9, y: 340},
+];
+const CHAIN = ["Emb", "LN1", "QKV", "Heads", "RotQ", "TcQ", "SDPA", "Concat", "Wo", "Add1", "LN2", "W1", "Mul", "W2", "Add2"];
+const LAYER_TOTAL = 19971.9;
+(function () {
+  const svg = document.getElementById("dag");
+  const wrap = document.getElementById("dag-wrap");
+  const tip = tipFor(wrap);
+  const W = 1000, H = 458, NW = 84, NH = 40;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.style.minWidth = "820px";
+  arrowDefs(svg, "dg");
+  const N = {};
+  LAYER.forEach(n => { n.x = 24 + n.c * 96 + (n.c >= 6 ? 18 : 0); N[n.id] = n; });
+  const onChain = id => CHAIN.includes(id);
+  const crit = (a, b) => { const i = CHAIN.indexOf(a); return i >= 0 && CHAIN[i + 1] === b; };
+  const L = n => [n.x, n.y + NH / 2], R = n => [n.x + NW, n.y + NH / 2], T = n => [n.x + NW / 2, n.y], B = n => [n.x + NW / 2, n.y + NH];
+  const curve = (p, q) => { const mx = (p[0] + q[0]) / 2; return `M${p[0]},${p[1]} C${mx},${p[1]} ${mx},${q[1]} ${q[0] - 2},${q[1]}`; };
+  const poly = pts => "M" + pts.map(p => p.join(",")).join(" L");
+  const edges = [
+    ["Emb", "LN1"], ["LN1", "QKV"], ["QKV", "Heads"], ["Heads", "RotQ"], ["Heads", "RotK"], ["Heads", "TcV"],
+    ["Rope", "RotQ"], ["Rope", "RotK"], ["RotQ", "TcQ"], ["RotK", "TcK"], ["TcV", "FillV"], ["TcK", "FillK"],
+    ["TcQ", "SDPA"], ["TcK", "SDPA"],
+    ["TcV", "SDPA", () => { const a = R(N.TcV), s = L(N.SDPA); const gx1 = a[0] + 6, gy = 231, gx2 = N.SDPA.x - 10; return poly([a, [gx1, a[1]], [gx1, gy], [gx2, gy], [gx2, s[1] + 8], [s[0] - 2, s[1] + 8]]); }],
+    ["SDPA", "Concat"], ["Concat", "Wo"], ["Wo", "Add1"],
+    ["Emb", "Add1", () => { const a = T(N.Emb), b = T(N.Add1); return poly([a, [a[0], 18], [b[0] - 14, 18], [b[0] - 14, b[1] - 2]]); }],
+    ["Add1", "LN2", () => { const a = B(N.Add1), b = T(N.LN2); return poly([[a[0] - 14, a[1]], [a[0] - 14, 296], [b[0], 296], [b[0], b[1] - 2]]); }],
+    ["Add1", "Add2", () => { const a = B(N.Add1), b = T(N.Add2); return poly([[a[0] + 14, a[1]], [b[0] + 14, b[1] - 2]]); }],
+    ["LN2", "W1"], ["LN2", "W3"], ["W1", "Mul"], ["W3", "Mul"], ["Mul", "W2"], ["W2", "Add2"],
+  ];
+  const eg = el("g", {}, svg);
+  edges.forEach(([a, b, route]) => {
+    const c = crit(a, b) || (a === "Add1" && b === "LN2");
+    const d = route ? route() : (N[a].y === N[b].y ? poly([R(N[a]), [L(N[b])[0] - 2, L(N[b])[1]]]) : curve(R(N[a]), L(N[b])));
+    el("path", {d, fill: "none", stroke: c ? "var(--ink)" : "var(--ink-3)", "stroke-width": c ? 2 : 1.2, "marker-end": `url(#dg${c ? "b" : "a"})`}, eg);
+  });
+  el("text", {x: 24, y: 352, "font-size": 12, "font-weight": 600, fill: "var(--ink-2)"}, svg, "MLP block");
+  el("text", {x: 24, y: 368, "font-size": 11, fill: "var(--ink-3)"}, svg, "continues from the first");
+  el("text", {x: 24, y: 382, "font-size": 11, fill: "var(--ink-3)"}, svg, "residual add");
+  LAYER.forEach(n => {
+    const s = CAT[n.cat], on = onChain(n.id);
+    const g = el("g", {tabindex: 0, style: "outline:none", "aria-label": `${n.label}: ${fmtTime(n.us)}${on ? ", on the longest chain" : ", not on the longest chain"}`}, svg);
+    el("rect", {x: n.x, y: n.y, width: NW, height: NH, rx: 6, style: `fill:${s.fill}`, stroke: s.stroke, "stroke-width": on ? 1.6 : 1.2, "stroke-dasharray": on ? "none" : "4 3"}, g);
+    el("text", {x: n.x + NW / 2, y: n.y + 16, "text-anchor": "middle", "font-size": 11, "font-weight": 600, fill: on ? "var(--ink)" : "var(--ink-2)"}, g, n.label);
+    el("text", {x: n.x + NW / 2, y: n.y + 31, "text-anchor": "middle", "font-size": 10.5, fill: "var(--ink-2)", "font-family": "var(--font-mono)"}, g, fmtTime(n.us));
+    const html = `<b>${n.label}</b><br>${n.code}<br>${fmtTime(n.us)} &middot; ${(n.us / LAYER_TOTAL * 100).toFixed(1)}% of the layer<br>${on ? "On the longest dependency chain" : "Not on the longest dependency chain"}`;
+    g.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+    g.addEventListener("pointerleave", () => tip.hide());
+    g.addEventListener("focus", () => { const b = g.getBoundingClientRect(); tip.show(html, b.left + b.width / 2, b.top); });
+    g.addEventListener("blur", () => tip.hide());
+  });
+})();
+
+/* ---- Layer device timeline (4k, execution order) ---- */
+(function () {
+  const ORDER = ["Emb", "Rope:SliceCos", "Rope:SliceSin", "LN1", "QKV", "Heads", "RotQ", "RotK", "TcK", "TcV", "FillK", "FillV", "TcQ", "SDPA", "Concat", "Wo", "Add1", "LN2", "W1", "W3", "Mul", "W2", "Add2"];
+  const by = Object.fromEntries(LAYER.map(n => [n.id, n]));
+  const ops = ORDER.map(k => {
+    if (k.startsWith("Rope:")) return {id: "Rope", label: k.endsWith("Cos") ? "RoPE cos slice" : "RoPE sin slice", us: k.endsWith("Cos") ? 5.891 : 6.059, cat: "ot"};
+    return by[k];
+  });
+  const svg = document.getElementById("tl");
+  const wrap = document.getElementById("tl-wrap");
+  const tip = tipFor(wrap);
+  const W = 1000, H = 112, x0 = 24, x1 = 976, y = 34, bh = 30;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const sx = us => x0 + us / LAYER_TOTAL * (x1 - x0);
+  [0, 5000, 10000, 15000, 20000].forEach(t => {
+    if (t > LAYER_TOTAL) return;
+    el("line", {x1: sx(t), x2: sx(t), y1: y - 4, y2: y + bh + 6, stroke: "var(--rule)", "stroke-width": 1}, svg);
+    el("text", {x: sx(t), y: y + bh + 22, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, (t / 1000) + " ms");
+  });
+  el("text", {x: x1, y: y + bh + 22, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)"}, svg, "19.97 ms");
+  let acc = 0;
+  ops.forEach(o => {
+    const a = sx(acc), b = sx(acc + o.us), on = CHAIN.includes(o.id);
+    const s = CAT[o.cat];
+    const fill = o.cat === "mm" ? "var(--mm)" : o.cat === "sdpa" ? "var(--sdpa)" : "var(--other)";
+    el("rect", {x: a, y, width: Math.max(0.6, b - a - (b - a > 3 ? 1.5 : 0)), height: bh, fill, opacity: on ? 1 : 0.4}, svg);
+    if (b - a > 36) el("text", {x: (a + b) / 2, y: y - 8, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-2)"}, svg, o.label.replace(" matmul", ""));
+    const hit = el("rect", {x: a, y: y - 2, width: Math.max(4, b - a), height: bh + 4, fill: "transparent", tabindex: 0, style: "outline:none", "aria-label": `${o.label}: ${fmtTime(o.us)}`}, svg);
+    const html = `<b>${o.label}</b><br>starts at ${(acc / 1000).toFixed(2)} ms &middot; runs ${fmtTime(o.us)}<br>${on ? "On the longest dependency chain" : "Not on the longest dependency chain"}`;
+    const t0 = acc;
+    hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+    hit.addEventListener("pointerleave", () => tip.hide());
+    hit.addEventListener("focus", () => { const r = hit.getBoundingClientRect(); tip.show(html, r.left + r.width / 2, r.top); });
+    hit.addEventListener("blur", () => tip.hide());
+    acc += o.us;
+  });
+})();
+
+/* ---- SDPA chunk-step data flow ---- */
+(function () {
+  const svg = document.getElementById("sflow");
+  const W = 1000, H = 290, NW = 128, NH = 48;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.style.minWidth = "760px";
+  arrowDefs(svg, "sf");
+  const stage = [
+    {id: "QK", label: "QKᵀ matmul", unit: "FPU", x: 150, col: "var(--mm)"},
+    {id: "MAX", label: "Row max", unit: "FPU + SFPU", x: 318, col: "var(--mx)"},
+    {id: "SE", label: "Subtract + exp", unit: "SFPU (+ FPU subtract)", x: 486, col: "var(--sdpa)"},
+    {id: "PV", label: "PV matmul", unit: "FPU", x: 654, col: "var(--pv)"},
+    {id: "CO", label: "Correction", unit: "FPU + SFPU", x: 822, col: "var(--co)"},
+  ];
+  const sy = 120;
+  const S = Object.fromEntries(stage.map(s => [s.id, s]));
+  const box = (x, y, w, h, title, sub, stroke, fill, dash) => {
+    el("rect", {x, y, width: w, height: h, rx: 7, style: `fill:${fill}`, stroke, "stroke-width": 1.5, "stroke-dasharray": dash || "none"}, svg);
+    el("text", {x: x + w / 2, y: y + (sub ? 20 : h / 2 + 4), "text-anchor": "middle", "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, title);
+    if (sub) el("text", {x: x + w / 2, y: y + 36, "text-anchor": "middle", "font-size": 10.5, fill: "var(--ink-2)", "font-family": "var(--font-mono)"}, svg, sub);
+  };
+  const line = (pts, strong, dash) => el("path", {d: "M" + pts.map(p => p.join(",")).join(" L"), fill: "none", stroke: strong ? "var(--ink)" : "var(--ink-3)", "stroke-width": strong ? 1.8 : 1.3, "stroke-dasharray": dash || "none", "marker-end": `url(#sf${strong ? "b" : "a"})`}, svg);
+  const lab = (x, y, t, anchor) => el("text", {x, y, "text-anchor": anchor || "middle", "font-size": 11, fill: "var(--ink-2)", "font-style": "italic"}, svg, t);
+  // inputs from the reader
+  const inY = 18, inH = 40;
+  box(96, inY, 112, inH, "Q chunk", "", "var(--ink-3)", "var(--surface)");
+  box(226, inY, 112, inH, "K chunk j", "", "var(--ink-3)", "var(--surface)");
+  box(598, inY, 112, inH, "V chunk j", "", "var(--ink-3)", "var(--surface)");
+  box(852, inY, 128, inH, "K chunk j+1", "", "var(--ink-3)", "var(--surface)", "4 3");
+  el("text", {x: 24, y: inY + 25, "font-size": 11, fill: "var(--ink-3)"}, svg, "from DRAM");
+  line([[152, inY + inH], [196, sy - 2]]);
+  line([[282, inY + inH], [238, sy - 2]]);
+  line([[654, inY + inH], [718, sy - 2]]);
+  lab(912, inY + inH + 18, "next step's QKᵀ:");
+  lab(912, inY + inH + 32, "needs nothing from step j");
+  // stages
+  stage.forEach(s => box(s.x, sy, NW, NH, s.label, s.unit, s.col, `color-mix(in srgb, ${s.col} 16%, var(--surface))`));
+  const mid = s => sy + NH / 2;
+  line([[S.QK.x + NW, mid()], [S.MAX.x - 2, mid()]], true); lab((S.QK.x + NW + S.MAX.x) / 2, sy - 6, "S");
+  line([[S.MAX.x + NW, mid()], [S.SE.x - 2, mid()]], true); lab((S.MAX.x + NW + S.SE.x) / 2, sy - 6, "mⱼ");
+  line([[S.SE.x + NW, mid()], [S.PV.x - 2, mid()]], true); lab((S.SE.x + NW + S.PV.x) / 2, sy - 6, "P, partial lⱼ");
+  line([[S.PV.x + NW, mid()], [S.CO.x - 2, mid()]], true); lab((S.PV.x + NW + S.CO.x) / 2, sy - 6, "P·Vⱼ");
+  // carried state
+  const by_ = 222, bh_ = 44;
+  box(96, by_, 180, bh_, "State after step j−1", "mⱼ₋₁ · lⱼ₋₁ · Oⱼ₋₁", "var(--ink-3)", "var(--surface)", "4 3");
+  box(780, by_, 200, bh_, "State after step j", "mⱼ · lⱼ · Oⱼ  → step j+1", "var(--ink-3)", "var(--surface)", "4 3");
+  line([[226, by_], [S.MAX.x + 30, sy + NH + 2]]); lab(268, by_ - 4, "mⱼ₋₁", "start");
+  line([[262, by_], [262, 196], [S.CO.x + 34, 196], [S.CO.x + 34, sy + NH + 2]]); lab(560, 190, "mⱼ₋₁, lⱼ₋₁, Oⱼ₋₁ for the correction");
+  line([[S.CO.x + 92, sy + NH], [S.CO.x + 92, by_ - 2]]);
+})();
+
+/* ---- SDPA measured schedule, core (1,2), 4k, two steps ---- */
+(function () {
+  const STG = {QK: ["QKᵀ matmul", "var(--mm)"], MAX: ["Row max", "var(--mx)"], SE: ["Subtract + exp", "var(--sdpa)"], PV: ["PV matmul", "var(--pv)"], CO: ["Correction", "var(--co)"]};
+  const LANES = [
+    {name: "Unpack", sub: "TRISC 0", z: [["QK", 10, 16998], ["MAX", 17043, 26084], ["SE", 26116, 117975], ["PV", 118008, 142210], ["CO", 142400, 149747], ["QK", 149805, 166783], ["MAX", 166824, 175856], ["SE", 175891, 267750], ["PV", 267783, 291985], ["CO", 292184, 299487]]},
+    {name: "Math", sub: "TRISC 1", z: [["QK", 0, 17089], ["MAX", 17133, 26496], ["SE", 26534, 125579], ["PV", 125617, 142274], ["CO", 142367, 149742], ["QK", 149797, 166875], ["MAX", 166917, 176271], ["SE", 176309, 275354], ["PV", 275392, 292049], ["CO", 292142, 299477]]},
+    {name: "Pack", sub: "TRISC 2", z: [["QK", 366, 17862], ["MAX", 17905, 25539], ["SE", 25574, 125931], ["PV", 125966, 143018], ["CO", 143054, 150116], ["QK", 150172, 167651], ["MAX", 167694, 175308], ["SE", 175341, 275706], ["PV", 275741, 292789], ["CO", 292829, 299848]]},
+  ];
+  const svg = document.getElementById("gantt");
+  const wrap = document.getElementById("gantt-wrap");
+  const tip = tipFor(wrap);
+  const W = 1000, left = 108, right = 16, top = 34, laneH = 40, bh = 26, max = 300000;
+  const H = top + LANES.length * laneH + 40;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const sx = c => left + c / max * (W - left - right);
+  [0, 50000, 100000, 150000, 200000, 250000, 300000].forEach(c => {
+    el("line", {x1: sx(c), x2: sx(c), y1: top - 6, y2: top + LANES.length * laneH, stroke: "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: sx(c), y: top + LANES.length * laneH + 16, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, c === 0 ? "0" : (c / 1000) + "k");
+    if (c > 0) el("text", {x: sx(c), y: top + LANES.length * laneH + 30, "text-anchor": "middle", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, svg, Math.round(c / 1350) + " µs");
+  });
+  [[0, 149797, "step j"], [149797, 299848, "step j+1"]].forEach(([a, b, t]) => {
+    el("path", {d: `M${sx(a) + 2},${top - 10} L${sx(a) + 2},${top - 16} L${sx(b) - 2},${top - 16} L${sx(b) - 2},${top - 10}`, fill: "none", stroke: "var(--ink-3)", "stroke-width": 1}, svg);
+    el("text", {x: (sx(a) + sx(b)) / 2, y: top - 21, "text-anchor": "middle", "font-size": 11, "font-weight": 600, fill: "var(--ink-2)"}, svg, t);
+  });
+  LANES.forEach((ln, i) => {
+    const y = top + i * laneH + (laneH - bh) / 2;
+    el("text", {x: left - 12, y: y + 12, "text-anchor": "end", "font-size": 12.5, "font-weight": 600, fill: "var(--ink)"}, svg, ln.name);
+    el("text", {x: left - 12, y: y + 25, "text-anchor": "end", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, svg, ln.sub);
+    ln.z.forEach(([k, a, b]) => {
+      const [nm, col] = STG[k];
+      const x = sx(a), w = Math.max(1, sx(b) - sx(a) - 1.5);
+      el("rect", {x, y, width: w, height: bh, rx: 3, fill: col}, svg);
+      if (w > 60) el("text", {x: x + 6, y: y + bh / 2 + 4, "font-size": 11, "font-weight": 600, fill: k === "QK" ? "#fff" : "#15191e"}, svg, nm);
+      const hit = el("rect", {x, y: y - 2, width: Math.max(5, w), height: bh + 4, fill: "transparent", tabindex: 0, style: "outline:none", "aria-label": `${ln.name}, ${nm}: cycles ${a} to ${b}`}, svg);
+      const html = `<b>${ln.name} &middot; ${nm}</b><br>cycles ${a.toLocaleString("en-US")} &ndash; ${b.toLocaleString("en-US")}<br>${(b - a).toLocaleString("en-US")} cycles = ${((b - a) / 1350).toFixed(1)} µs`;
+      hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+      hit.addEventListener("pointerleave", () => tip.hide());
+      hit.addEventListener("focus", () => { const r = hit.getBoundingClientRect(); tip.show(html, r.left + r.width / 2, r.top); });
+      hit.addEventListener("blur", () => tip.hide());
+    });
+  });
+})();
+
+/* ---- Hypothetical Quasar schedule vs measured Blackhole ---- */
+(function () {
+  const COL = {QK: "var(--mm)", MAX: "var(--mx)", EX: "var(--sdpa)", PV: "var(--pv)", CO: "var(--co)"};
+  const NAME = {QK: "QKᵀ", MAX: "max", EX: "exp", PV: "PV", CO: "corr"};
+  const step = k => k === 0 ? "j" : k > 0 ? `j+${k}` : `j${k}`.replace("-", "−");
+  const BH = [["QK", 0, 0, 17089], ["MAX", 0, 17133, 26496], ["EX", 0, 26534, 125579], ["PV", 0, 125617, 142274], ["CO", 0, 142367, 149742],
+              ["QK", 1, 149797, 166875], ["MAX", 1, 166917, 176271], ["EX", 1, 176309, 275354], ["PV", 1, 275392, 292049], ["CO", 1, 292142, 299477]];
+  const QS = [["EX", 0, 0, 99050], ["MAX", 1, 99050, 100184], ["CO", 1, 100184, 101318], ["EX", 1, 101318, 200368], ["MAX", 2, 200368, 201502], ["CO", 2, 201502, 202636], ["EX", 2, 202636, 300000]];
+  const QF = [["PV", -1, 0, 14391], ["CO", -1, 14391, 20601], ["QK", 1, 20601, 38205], ["MAX", 1, 38205, 46332], ["PV", 0, 99050, 115709], ["CO", 0, 115709, 121919],
+              ["QK", 2, 121919, 139523], ["MAX", 2, 139523, 147650], ["PV", 1, 200368, 217027], ["CO", 1, 217027, 223237], ["QK", 3, 223237, 240841], ["MAX", 3, 240841, 248968]];
+  const svg = document.getElementById("quasar");
+  const wrap = document.getElementById("quasar-wrap");
+  const tip = tipFor(wrap);
+  const W = 1000, left = 150, right = 16, bh = 26, max = 300000;
+  const H = 262;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  arrowDefs(svg, "qz");
+  const sx = c => left + c / max * (W - left - right);
+  const axisY = 226;
+  [0, 50000, 100000, 150000, 200000, 250000, 300000].forEach(c => {
+    el("line", {x1: sx(c), x2: sx(c), y1: 24, y2: axisY - 8, stroke: "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: sx(c), y: axisY + 6, "text-anchor": c === 300000 ? "end" : "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, c === 0 ? "0" : c === 300000 ? "300k cycles" : (c / 1000) + "k");
+    if (c > 0) el("text", {x: sx(c), y: axisY + 20, "text-anchor": "middle", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, svg, Math.round(c / 1350) + " µs");
+  });
+  el("text", {x: 16, y: 18, "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, "Blackhole · measured");
+  el("text", {x: 16, y: 106, "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, "Quasar · modelled");
+  const bracket = (a, b, y, t) => {
+    el("path", {d: `M${sx(a) + 2},${y + 6} L${sx(a) + 2},${y} L${sx(b) - 2},${y} L${sx(b) - 2},${y + 6}`, fill: "none", stroke: "var(--ink-3)", "stroke-width": 1}, svg);
+    el("text", {x: (sx(a) + sx(b)) / 2, y: y - 4, "text-anchor": "middle", "font-size": 10.5, fill: "var(--ink-2)"}, svg, t);
+  };
+  bracket(0, 149797, 26, "step j · 149,918 cycles");
+  bracket(149797, 299848, 26, "step j+1");
+  bracket(0, 101318, 114, "step · 101,318 cycles");
+  bracket(101318, 202636, 114, "step");
+  bracket(202636, 300000, 114, "step");
+  const lane = (y, name, sub, items, tag) => {
+    el("text", {x: left - 12, y: y + 12, "text-anchor": "end", "font-size": 12.5, "font-weight": 600, fill: "var(--ink)"}, svg, name);
+    el("text", {x: left - 12, y: y + 25, "text-anchor": "end", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, svg, sub);
+    items.forEach(([k, s, a, b]) => {
+      const x = sx(a), w = Math.max(1, sx(b) - sx(a) - 1.5);
+      el("rect", {x, y, width: w, height: bh, rx: 3, fill: COL[k]}, svg);
+      const t = `${NAME[k]} ${step(s)}`;
+      if (w > 44) el("text", {x: x + 5, y: y + bh / 2 + 4, "font-size": 10.5, "font-weight": 600, fill: k === "QK" ? "#fff" : "#15191e"}, svg, t);
+      const hit = el("rect", {x, y: y - 2, width: Math.max(5, w), height: bh + 4, fill: "transparent", tabindex: 0, style: "outline:none", "aria-label": `${tag}, ${name}: ${t}, ${b - a} cycles`}, svg);
+      const html = `<b>${tag} · ${name}</b><br>${t}<br>cycles ${a.toLocaleString("en-US")} &ndash; ${b.toLocaleString("en-US")} (${((b - a) / 1350).toFixed(1)} µs)`;
+      hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+      hit.addEventListener("pointerleave", () => tip.hide());
+      hit.addEventListener("focus", () => { const r = hit.getBoundingClientRect(); tip.show(html, r.left + r.width / 2, r.top); });
+      hit.addEventListener("blur", () => tip.hide());
+    });
+  };
+  lane(40, "Math thread", "FPU + SFPU", BH, "Blackhole");
+  const ySF = 128, yF = 174;
+  lane(ySF, "SFPU thread", "exp, max, corr", QS, "Quasar");
+  lane(yF, "FPU thread", "matmuls, reduce", QF, "Quasar");
+  [99050, 200368].forEach(c => el("path", {d: `M${sx(c)},${ySF + bh + 1} L${sx(c)},${yF - 2}`, stroke: "var(--ink)", "stroke-width": 1.6, fill: "none", "marker-end": "url(#qzb)"}, svg));
+  el("text", {x: sx(99050) + 6, y: ySF + bh + 14, "font-size": 10.5, fill: "var(--ink-2)", "font-style": "italic"}, svg, "PV waits for its exp");
+
+  const ROWS = [
+    {seq: 2048, sd: 2010.2, sq: 1358.5, l: 8122.0, lq: 7470.3},
+    {seq: 3072, sd: 4340.1, sq: 2933.2, l: 15319.9, lq: 13912.9},
+    {seq: 4096, sd: 7552.9, sq: 5104.4, l: 19960.0, lq: 17511.5},
+    {seq: 8192, sd: 29286.2, sq: 19792.3, l: 53914.2, lq: 44420.3},
+    {seq: 16384, sd: 115331.2, sq: 77943.4, l: 164383.1, lq: 126995.4},
+    {seq: 32768, sd: 457805.9, sq: 309395.7, l: 555724.6, lq: 407314.3},
+  ];
+  document.querySelector("#quasar-table tbody").innerHTML = ROWS.map(r =>
+    `<tr><td>${fmtSeq(r.seq)}</td><td class="num sep">${fmtTime(r.sd)}</td><td class="num">${fmtTime(r.sq)}</td>` +
+    `<td class="num sep">${fmtTime(r.l)}</td><td class="num">${fmtTime(r.lq)}</td><td class="num">&minus;${((1 - r.lq / r.l) * 100).toFixed(1)}%</td></tr>`).join("");
+})();
+
+/* ---- What-if: single-cycle exp (fast_exp_model.py) ---- */
+const FX = [
+  {seq: 128, t: 1330.1, tf: 1318.8, fpu: 36.77, fpuf: 37.08, sfpu: 2.30, sfpuf: 1.89},
+  {seq: 512, t: 2253.1, tf: 2187.6, fpu: 48.71, fpuf: 50.17, sfpu: 7.09, sfpuf: 4.31},
+  {seq: 1024, t: 3830.6, tf: 3584.5, fpu: 53.61, fpuf: 57.29, sfpu: 11.91, sfpuf: 5.86},
+  {seq: 2048, t: 8122.0, tf: 7074.6, tq: 6763.6, fpu: 51.66, fpuf: 59.31, sfpu: 18.42, sfpuf: 6.34},
+  {seq: 3072, t: 15319.9, tf: 13051.8, tq: 12386.4, fpu: 46.73, fpuf: 54.85, sfpu: 19.79, sfpuf: 5.85},
+  {seq: 4096, t: 19960.0, tf: 16007.5, tq: 14854.6, fpu: 45.55, fpuf: 56.80, sfpu: 25.53, sfpuf: 7.14},
+  {seq: 8192, t: 53914.2, tf: 38570.3, tq: 34119.9, fpu: 39.95, fpuf: 55.84, sfpu: 34.54, sfpuf: 8.50},
+  {seq: 16384, t: 164383.1, tf: 103935.4, tq: 86428.4, fpu: 34.37, fpuf: 54.36, sfpu: 43.17, sfpuf: 10.12},
+  {seq: 32768, t: 555724.6, tf: 315784.7, tq: 246314.5, fpu: 30.02, fpuf: 52.83, sfpu: 49.81, sfpuf: 11.67},
+];
+(function () {
+  const COL = {QK: "var(--mm)", MAX: "var(--mx)", EX: "var(--sdpa)", PV: "var(--pv)", CO: "var(--co)"};
+  const NAME = {QK: "QKᵀ", MAX: "max", EX: "exp", PV: "PV", CO: "corr"};
+  const step = k => k === 0 ? "j" : k > 0 ? `j+${k}` : `j${k}`.replace("-", "−");
+  const seqLane = (costs, n) => {
+    const out = []; let t = 0;
+    for (let s = 0; s < n; s++) for (const [k, c] of costs) { out.push([k, s, t, Math.min(t + c, 150000)]); t += c; if (t >= 150000) return out; }
+    return out;
+  };
+  const BH = seqLane([["QK", 17607], ["MAX", 9260], ["EX", 99045], ["PV", 16659], ["CO", 7340]], 1);
+  const BHF = seqLane([["QK", 17607], ["MAX", 9260], ["EX", 20460], ["PV", 16659], ["CO", 7340]], 3);
+  const QS = [["EX", 0, 0, 20460], ["MAX", 1, 46310, 47449], ["CO", 1, 47449, 48588], ["EX", 1, 48588, 69048], ["MAX", 2, 94898, 96037], ["CO", 2, 96037, 97176], ["EX", 2, 97176, 117636], ["MAX", 3, 143486, 144625], ["CO", 3, 144625, 145764], ["EX", 3, 145764, 150000]];
+  const QF = [["PV", -1, 0, 14381], ["CO", -1, 14381, 20582], ["QK", 1, 20582, 38189], ["MAX", 1, 38189, 46310], ["PV", 0, 46310, 62969], ["CO", 0, 62969, 69170],
+              ["QK", 2, 69170, 86777], ["MAX", 2, 86777, 94898], ["PV", 1, 94898, 111557], ["CO", 1, 111557, 117758], ["QK", 3, 117758, 135365], ["MAX", 3, 135365, 143486], ["PV", 2, 143486, 150000]];
+  const svg = document.getElementById("fx");
+  const wrap = document.getElementById("fx-wrap");
+  const tip = tipFor(wrap);
+  const W = 1000, left = 150, right = 16, bh = 26, max = 150000, H = 312, axisY = 278;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const sx = c => left + c / max * (W - left - right);
+  [0, 25000, 50000, 75000, 100000, 125000, 150000].forEach(c => {
+    el("line", {x1: sx(c), x2: sx(c), y1: 24, y2: axisY - 8, stroke: "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: sx(c), y: axisY + 6, "text-anchor": c === 150000 ? "end" : "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, c === 0 ? "0" : c === 150000 ? "150k cycles" : (c / 1000) + "k");
+    if (c > 0 && c < 150000) el("text", {x: sx(c), y: axisY + 20, "text-anchor": "middle", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, svg, Math.round(c / 1350) + " µs");
+  });
+  const bracket = (a, b, y, t) => {
+    el("path", {d: `M${sx(a) + 2},${y + 6} L${sx(a) + 2},${y} L${sx(b) - 2},${y} L${sx(b) - 2},${y + 6}`, fill: "none", stroke: "var(--ink-3)", "stroke-width": 1}, svg);
+    el("text", {x: (sx(a) + sx(b)) / 2, y: y - 4, "text-anchor": "middle", "font-size": 10.5, fill: "var(--ink-2)"}, svg, t);
+  };
+  const lane = (y, name, sub, items, tag) => {
+    el("text", {x: left - 12, y: y + 12, "text-anchor": "end", "font-size": 12.5, "font-weight": 600, fill: "var(--ink)"}, svg, name);
+    el("text", {x: left - 12, y: y + 25, "text-anchor": "end", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, svg, sub);
+    items.forEach(([k, s, a, b]) => {
+      const x = sx(a), w = Math.max(1, sx(b) - sx(a) - 1.5);
+      el("rect", {x, y, width: w, height: bh, rx: 3, fill: COL[k]}, svg);
+      const t = `${NAME[k]} ${step(s)}`;
+      if (w > 40) el("text", {x: x + 5, y: y + bh / 2 + 4, "font-size": 10.5, "font-weight": 600, fill: k === "QK" ? "#fff" : "#15191e"}, svg, t);
+      const hit = el("rect", {x, y: y - 2, width: Math.max(5, w), height: bh + 4, fill: "transparent", tabindex: 0, style: "outline:none", "aria-label": `${tag}, ${name}: ${t}, ${b - a} cycles`}, svg);
+      const extra = tag !== "measured" && k === "EX" ? "<br>exp on SFPU 8,192 · FPU subtract 939 · waits 11,327" : "";
+      const html = `<b>${tag} · ${name}</b><br>${t}<br>cycles ${a.toLocaleString("en-US")} &ndash; ${b.toLocaleString("en-US")} (${((b - a) / 1350).toFixed(1)} µs)${extra}`;
+      hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+      hit.addEventListener("pointerleave", () => tip.hide());
+      hit.addEventListener("focus", () => { const r = hit.getBoundingClientRect(); tip.show(html, r.left + r.width / 2, r.top); });
+      hit.addEventListener("blur", () => tip.hide());
+    });
+  };
+  el("text", {x: 16, y: 18, "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, "Blackhole · measured");
+  bracket(0, 149911, 28, "one step · 149,911 cycles");
+  lane(40, "Math thread", "FPU + SFPU", BH, "measured");
+  el("text", {x: 16, y: 94, "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, "Blackhole · single-cycle exp");
+  bracket(0, 71326, 104, "step · 71,326 cycles");
+  bracket(71326, 142652, 104, "step");
+  lane(116, "Math thread", "FPU + SFPU", BHF, "Blackhole, single-cycle exp");
+  el("text", {x: 16, y: 170, "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, "Quasar model · single-cycle exp");
+  bracket(0, 48588, 180, "step · 48,588");
+  bracket(48588, 97176, 180, "step");
+  bracket(97176, 145764, 180, "step");
+  lane(192, "SFPU thread", "exp, max, corr", QS, "Quasar, single-cycle exp");
+  lane(232, "FPU thread", "matmuls, reduce", QF, "Quasar, single-cycle exp");
+
+  // grouped bars: measured vs single-cycle exp
+  const s2 = document.getElementById("fxu");
+  const wrap2 = document.getElementById("fxu-wrap");
+  const tip2 = tipFor(wrap2);
+  const W2 = 880, H2 = 330, L2 = 48, R2 = 16, T2 = 16, B2 = 44, MX = 70;
+  s2.setAttribute("viewBox", `0 0 ${W2} ${H2}`);
+  const pw = W2 - L2 - R2, ph = H2 - T2 - B2, gw = pw / FX.length, bw = Math.min(18, gw * 0.2);
+  const y = v => T2 + (1 - v / MX) * ph;
+  [0, 10, 20, 30, 40, 50, 60, 70].forEach(v => {
+    el("line", {x1: L2, x2: L2 + pw, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--rule)" : "var(--rule-soft)", "stroke-width": 1}, s2);
+    el("text", {x: L2 - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)"}, s2, v + "%");
+  });
+  el("text", {x: 14, y: T2 + ph / 2, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)", transform: `rotate(-90 14 ${T2 + ph / 2})`}, s2, "utilization, active cores");
+  el("text", {x: L2 + pw / 2, y: H2 - 4, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, s2, "prompt length (tokens)");
+  FX.forEach((d, i) => {
+    const cx = L2 + (i + 0.5) * gw;
+    el("text", {x: cx, y: T2 + ph + 18, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-2)"}, s2, d.seq >= 1024 ? (d.seq / 1024) + "k" : d.seq);
+    const bars = [[d.fpu, "var(--mm)", false], [d.fpuf, "var(--mm)", true], [d.sfpu, "var(--sdpa)", false], [d.sfpuf, "var(--sdpa)", true]];
+    bars.forEach(([v, c, hyp], k) => {
+      const x = cx - 2 * bw - 3 + k * (bw + 2) + (k >= 2 ? 2 : 0);
+      const a = {x, y: y(v), width: bw, height: y(0) - y(v), rx: 2};
+      if (hyp) { a.style = `fill:color-mix(in srgb, ${c} 30%, var(--surface))`; a.stroke = c; a["stroke-width"] = 1.2; a["stroke-dasharray"] = "3 2"; }
+      else a.fill = c;
+      el("rect", a, s2);
+    });
+    const hit = el("rect", {x: L2 + i * gw, y: T2, width: gw, height: ph, fill: "transparent", tabindex: 0, style: "outline:none",
+      "aria-label": `${fmtSeq(d.seq)} tokens: FPU ${f2(d.fpu)} to ${f2(d.fpuf)}%, SFPU ${f2(d.sfpu)} to ${f2(d.sfpuf)}%`}, s2);
+    const html = `<b>${fmtSeq(d.seq)} tokens</b><br>FPU ${f2(d.fpu)}% &rarr; ${f2(d.fpuf)}%<br>SFPU ${f2(d.sfpu)}% &rarr; ${f2(d.sfpuf)}%<br>layer ${fmtTime(d.t)} &rarr; ${fmtTime(d.tf)} (${((d.tf / d.t - 1) * 100).toFixed(1)}%)`;
+    hit.addEventListener("pointermove", e => tip2.show(html, e.clientX, e.clientY));
+    hit.addEventListener("pointerleave", () => tip2.hide());
+    hit.addEventListener("focus", () => { const b = hit.getBoundingClientRect(); tip2.show(html, b.left + b.width / 2, b.top + 30); });
+    hit.addEventListener("blur", () => tip2.hide());
+  });
+  document.querySelector("#fx-table tbody").innerHTML = FX.map(d =>
+    `<tr><td>${fmtSeq(d.seq)}</td><td class="num sep">${fmtTime(d.t)}</td><td class="num">${fmtTime(d.tf)}</td><td class="num">${((d.tf / d.t - 1) * 100).toFixed(1).replace("-", "−")}%</td>` +
+    `<td class="num">${d.tq ? fmtTime(d.tq) + ` <span class="muted">(${((d.tq / d.t - 1) * 100).toFixed(1).replace("-", "−")}%)</span>` : "&mdash;"}</td>` +
+    `<td class="num sep">${f2(d.fpu)}</td><td class="num">${f2(d.fpuf)}</td><td class="num sep">${f2(d.sfpu)}</td><td class="num">${f2(d.sfpuf)}</td></tr>`).join("");
+})();
+
+/* ---- What-if: only QK^T and PV on the FPU (sfpu_offload_model.py) ---- */
+const OFF_STEP = [
+  {exp: "measured", split: "today's", t1: 149911, f1: 23.7, s1: 59.4, t2: 101323, f2: 35.1, s2: 87.9},
+  {exp: "measured", split: "matmuls only, same cost", t1: 149911, f1: 21.9, s1: 61.3, t2: 115645, f2: 28.3, s2: 79.4},
+  {exp: "measured", split: "matmuls only, SFPU rate", t1: 171669, f1: 19.1, s1: 66.2, t2: 137403, f2: 23.8, s2: 82.7},
+  {exp: "single-cycle", split: "today's", t1: 71326, f1: 49.9, s1: 14.7, t2: 48588, f2: 73.2, s2: 21.5},
+  {exp: "single-cycle", split: "matmuls only, same cost", t1: 71326, f1: 45.9, s1: 18.6, t2: 37060, f2: 88.4, s2: 35.9},
+  {exp: "single-cycle", split: "matmuls only, SFPU rate", t1: 93084, f1: 35.2, s1: 37.6, t2: 58818, f2: 55.7, s2: 59.6},
+];
+const OFF_LEN = [
+  {seq: 2048, t: 8122.0, ta: 6763.6, tb: 6609.0, tc: 6900.7, fa: 62.04, sa: 6.67, fb: 62.92, sb: 7.4},
+  {seq: 3072, t: 15319.9, ta: 12386.4, tb: 12052.7, tc: 12682.6, fa: 57.8, sa: 6.2, fb: 58.72, sb: 7.05},
+  {seq: 4096, t: 19960.0, ta: 14854.6, tb: 14273.8, tc: 15370.1, fa: 61.2, sa: 7.73, fb: 62.7, sb: 9.04},
+  {seq: 8192, t: 53914.2, ta: 34119.9, tb: 31867.8, tc: 36118.4, fa: 63.13, sa: 9.64, fb: 65.86, sb: 12.05},
+  {seq: 16384, t: 164383.1, ta: 86428.4, tb: 77559.2, tc: 94299.1, fa: 65.37, sa: 12.2, fb: 70.05, sb: 16.38},
+  {seq: 32768, t: 555724.6, ta: 246314.5, tb: 211111.5, tc: 277553.9, fa: 67.73, sa: 14.99, fb: 74.95, sb: 21.56},
+];
+(function () {
+  const BASE = 149911;
+  const cyc = c => c.toLocaleString("en-US");
+  document.querySelector("#off-table tbody").innerHTML = OFF_STEP.map((d, i) =>
+    `<tr${i === 4 ? ' class="chg"' : ""}><td>${i % 3 === 0 ? d.exp : ""}</td><td>${d.split}</td>` +
+    `<td class="num sep">${cyc(d.t1)}</td><td class="num">${(BASE / d.t1).toFixed(2)}&times;</td><td class="num">${d.f1.toFixed(1)}%</td><td class="num">${d.s1.toFixed(1)}%</td>` +
+    `<td class="num sep">${cyc(d.t2)}</td><td class="num">${(BASE / d.t2).toFixed(2)}&times;</td><td class="num">${d.f2.toFixed(1)}%</td><td class="num">${d.s2.toFixed(1)}%</td></tr>`).join("");
+
+  // thread timelines
+  const COL = {QK: "var(--mm)", MAX: "var(--mx)", EX: "var(--sdpa)", PV: "var(--pv)", CO: "var(--co)"};
+  const NAME = {QK: "QKᵀ", MAX: "max", EX: "exp", PV: "PV", CO: "corr"};
+  const step = k => k === 0 ? "j" : k > 0 ? `j+${k}` : `j${k}`.replace("-", "−");
+  const PANELS = [
+    {title: "Today's split · FPU does matmuls, reduce and correction", period: 48588, n: 3,
+     S: [["EX", 0, 0, 20460], ["MAX", 1, 46310, 47449], ["CO", 1, 47449, 48588], ["EX", 1, 48588, 69048], ["MAX", 2, 94898, 96037], ["CO", 2, 96037, 97176], ["EX", 2, 97176, 117636], ["MAX", 3, 143486, 144625], ["CO", 3, 144625, 145764], ["EX", 3, 145764, 150000]],
+     F: [["PV", -1, 0, 14381], ["CO", -1, 14381, 20582], ["QK", 1, 20582, 38189], ["MAX", 1, 38189, 46310], ["PV", 0, 46310, 62969], ["CO", 0, 62969, 69170], ["QK", 2, 69170, 86777], ["MAX", 2, 86777, 94898], ["PV", 1, 94898, 111557], ["CO", 1, 111557, 117758], ["QK", 3, 117758, 135365], ["MAX", 3, 135365, 143486], ["PV", 2, 143486, 150000]]},
+    {title: "Matmuls only on the FPU · same cost", period: 37060, n: 4,
+     S: [["EX", 0, 0, 20460], ["CO", -1, 20460, 27800], ["MAX", 1, 27800, 37060], ["EX", 1, 37060, 57520], ["CO", 0, 57520, 64860], ["MAX", 2, 64860, 74120], ["EX", 2, 74120, 94580], ["CO", 1, 94580, 101920], ["MAX", 3, 101920, 111180], ["EX", 3, 111180, 131640], ["CO", 2, 131640, 138980], ["MAX", 4, 138980, 148240], ["EX", 4, 148240, 150000]],
+     F: [["QK", 1, 59, 17666], ["PV", 0, 20460, 37119], ["QK", 2, 37119, 54726], ["PV", 1, 57520, 74179], ["QK", 3, 74179, 91786], ["PV", 2, 94580, 111239], ["QK", 4, 111239, 128846], ["PV", 3, 131640, 148299], ["QK", 5, 148299, 150000]]},
+    {title: "Matmuls only on the FPU · SFPU rate (128 cycles per tile)", period: 58818, n: 2,
+     S: [["EX", 0, 0, 27713], ["CO", -1, 27713, 41399], ["MAX", 1, 41399, 58818], ["EX", 1, 58818, 86531], ["CO", 0, 86531, 100217], ["MAX", 2, 100217, 117636], ["EX", 2, 117636, 145349], ["CO", 1, 145349, 150000]],
+     F: [["QK", 1, 0, 3161], ["PV", 0, 27713, 44372], ["QK", 2, 44372, 61979], ["PV", 1, 86531, 103190], ["QK", 3, 103190, 120797], ["PV", 2, 145349, 150000]]},
+  ];
+  const svg = document.getElementById("off");
+  const wrap = document.getElementById("off-wrap");
+  const tip = tipFor(wrap);
+  const W = 1000, left = 150, right = 16, bh = 24, max = 150000, panelH = 104, top0 = 6;
+  const H = top0 + PANELS.length * panelH + 36, axisY = top0 + PANELS.length * panelH + 8;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const sx = c => left + c / max * (W - left - right);
+  [0, 25000, 50000, 75000, 100000, 125000, 150000].forEach(c => {
+    el("line", {x1: sx(c), x2: sx(c), y1: top0 + 20, y2: axisY - 6, stroke: "var(--rule-soft)", "stroke-width": 1}, svg);
+    el("text", {x: sx(c), y: axisY + 8, "text-anchor": c === 150000 ? "end" : "middle", "font-size": 11, fill: "var(--ink-3)"}, svg, c === 0 ? "0" : c === 150000 ? "150k cycles" : (c / 1000) + "k");
+    if (c > 0 && c < 150000) el("text", {x: sx(c), y: axisY + 22, "text-anchor": "middle", "font-size": 10, fill: "var(--ink-3)", "font-family": "var(--font-mono)"}, svg, Math.round(c / 1350) + " µs");
+  });
+  PANELS.forEach((p, pi) => {
+    const y0 = top0 + pi * panelH;
+    const ttl = el("text", {x: 16, y: y0 + 14, "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, p.title);
+    el("tspan", {"font-weight": 400, fill: "var(--ink-2)"}, ttl, `  ·  one step = ${cyc(p.period)} cycles (${(BASE / p.period).toFixed(2)}× today)`);
+    for (let k = 0; k < p.n; k++) {
+      const a = k * p.period, b = Math.min((k + 1) * p.period, max);
+      el("path", {d: `M${sx(a) + 2},${y0 + 28} L${sx(a) + 2},${y0 + 22} L${sx(b) - 2},${y0 + 22} L${sx(b) - 2},${y0 + 28}`, fill: "none", stroke: "var(--ink-3)", "stroke-width": 1}, svg);
+    }
+    [["SFPU thread", p.S, y0 + 34], ["FPU thread", p.F, y0 + 34 + bh + 8]].forEach(([name, items, y]) => {
+      el("text", {x: left - 12, y: y + bh / 2 + 4, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: "var(--ink)"}, svg, name);
+      items.forEach(([k, s, a, b]) => {
+        const x = sx(a), w = Math.max(1, sx(b) - sx(a) - 1.5);
+        el("rect", {x, y, width: w, height: bh, rx: 3, fill: COL[k]}, svg);
+        const t = `${NAME[k]} ${step(s)}`;
+        if (w > 40) el("text", {x: x + 5, y: y + bh / 2 + 4, "font-size": 10.5, "font-weight": 600, fill: k === "QK" ? "#fff" : "#15191e"}, svg, t);
+        const hit = el("rect", {x, y: y - 2, width: Math.max(5, w), height: bh + 4, fill: "transparent", tabindex: 0, style: "outline:none", "aria-label": `${p.title}, ${name}: ${t}, ${b - a} cycles`}, svg);
+        const html = `<b>${name} · ${t}</b><br>${p.title}<br>cycles ${cyc(a)} &ndash; ${cyc(b)} (${((b - a) / 1350).toFixed(1)} µs)`;
+        hit.addEventListener("pointermove", e => tip.show(html, e.clientX, e.clientY));
+        hit.addEventListener("pointerleave", () => tip.hide());
+        hit.addEventListener("focus", () => { const r = hit.getBoundingClientRect(); tip.show(html, r.left + r.width / 2, r.top); });
+        hit.addEventListener("blur", () => tip.hide());
+      });
+    });
+  });
+
+  // whole-layer grouped bars
+  const s2 = document.getElementById("offu");
+  const wrap2 = document.getElementById("offu-wrap");
+  const tip2 = tipFor(wrap2);
+  const W2 = 880, H2 = 320, L2 = 48, R2 = 16, T2 = 16, B2 = 44, MX = 80;
+  s2.setAttribute("viewBox", `0 0 ${W2} ${H2}`);
+  const pw = W2 - L2 - R2, ph = H2 - T2 - B2, gw = pw / OFF_LEN.length, bw = Math.min(22, gw * 0.2);
+  const y = v => T2 + (1 - v / MX) * ph;
+  [0, 20, 40, 60, 80].forEach(v => {
+    el("line", {x1: L2, x2: L2 + pw, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--rule)" : "var(--rule-soft)", "stroke-width": 1}, s2);
+    el("text", {x: L2 - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--ink-3)"}, s2, v + "%");
+  });
+  el("text", {x: 14, y: T2 + ph / 2, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)", transform: `rotate(-90 14 ${T2 + ph / 2})`}, s2, "utilization, active cores");
+  el("text", {x: L2 + pw / 2, y: H2 - 4, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-3)"}, s2, "prompt length (tokens)");
+  OFF_LEN.forEach((d, i) => {
+    const cx = L2 + (i + 0.5) * gw;
+    el("text", {x: cx, y: T2 + ph + 18, "text-anchor": "middle", "font-size": 11, fill: "var(--ink-2)"}, s2, (d.seq / 1024) + "k");
+    [[d.fa, "var(--mm)", false], [d.fb, "var(--mm)", true], [d.sa, "var(--sdpa)", false], [d.sb, "var(--sdpa)", true]].forEach(([v, c, hyp], k) => {
+      const x = cx - 2 * bw - 3 + k * (bw + 2) + (k >= 2 ? 2 : 0);
+      const a = {x, y: y(v), width: bw, height: y(0) - y(v), rx: 2};
+      if (hyp) { a.style = `fill:color-mix(in srgb, ${c} 30%, var(--surface))`; a.stroke = c; a["stroke-width"] = 1.2; a["stroke-dasharray"] = "3 2"; }
+      else a.fill = c;
+      el("rect", a, s2);
+    });
+    const hit = el("rect", {x: L2 + i * gw, y: T2, width: gw, height: ph, fill: "transparent", tabindex: 0, style: "outline:none",
+      "aria-label": `${fmtSeq(d.seq)} tokens: FPU ${f2(d.fa)} to ${f2(d.fb)}%, SFPU ${f2(d.sa)} to ${f2(d.sb)}%`}, s2);
+    const html = `<b>${fmtSeq(d.seq)} tokens</b> · two threads + single-cycle exp<br>FPU ${f2(d.fa)}% &rarr; ${f2(d.fb)}% (matmuls only)<br>SFPU ${f2(d.sa)}% &rarr; ${f2(d.sb)}%<br>layer ${fmtTime(d.ta)} &rarr; ${fmtTime(d.tb)}`;
+    hit.addEventListener("pointermove", e => tip2.show(html, e.clientX, e.clientY));
+    hit.addEventListener("pointerleave", () => tip2.hide());
+    hit.addEventListener("focus", () => { const b = hit.getBoundingClientRect(); tip2.show(html, b.left + b.width / 2, b.top + 30); });
+    hit.addEventListener("blur", () => tip2.hide());
+  });
+  const pct = (a, b) => `<span class="muted">(${((a / b - 1) * 100).toFixed(0).replace("-", "−")}%)</span>`;
+  document.querySelector("#offl-table tbody").innerHTML = OFF_LEN.map(d =>
+    `<tr><td>${fmtSeq(d.seq)}</td><td class="num sep">${fmtTime(d.t)}</td>` +
+    `<td class="num sep">${fmtTime(d.ta)} ${pct(d.ta, d.t)}</td><td class="num">${fmtTime(d.tb)} ${pct(d.tb, d.t)}</td><td class="num">${fmtTime(d.tc)} ${pct(d.tc, d.t)}</td>` +
+    `<td class="num sep">${f2(d.fa)}</td><td class="num">${f2(d.fb)}</td><td class="num sep">${f2(d.sa)}</td><td class="num">${f2(d.sb)}</td></tr>`).join("");
+})();
+
+/* ---- Tables ---- */
+function seqCell(d) {
+  const dup = d.pad !== d.seq;
+  return `<td>${fmtSeq(d.seq)}${dup ? `<span class="pad">runs at ${fmtSeq(d.pad)}</span>` : ""}</td>`;
+}
+document.querySelector("#main-table tbody").innerHTML = DATA.map(d => {
+  const L = d.L, dup = d.pad !== d.seq;
+  return `<tr class="${dup ? "dup" : ""}">${seqCell(d)}<td class="num">${fmtTime(L.t)}</td>` +
+    `<td class="num sep">${f2(L.mm)}</td><td class="num">${f2(L.sd)}</td>` +
+    `<td class="num sep">${f2(L.fa)}</td><td class="num">${f2(L.ff)}</td>` +
+    `<td class="num sep">${f2(L.sa)}</td><td class="num">${f2(L.sf)}</td></tr>`;
+}).join("");
+
+document.querySelector("#diff-table tbody").innerHTML = DATA.map(d => {
+  const pairs = [[d.S.mm, d.L.mm], [d.S.sd, d.L.sd], [d.S.f, d.L.fa], [d.S.s, d.L.sa]];
+  return `<tr>${seqCell(d)}` + pairs.map(([s, c]) => {
+    const dl = c - s, big = Math.abs(dl) >= 0.5;
+    return `<td class="num sep">${f2(s)}</td><td class="num${big ? " chg" : ""}">${f2(c)}${big ? `<span class="delta">${dl > 0 ? "+" : "−"}${Math.abs(dl).toFixed(2)}</span>` : ""}</td>`;
+  }).join("") + `</tr>`;
+}).join("");
+
+document.querySelector("#full-table tbody").innerHTML = DATA.map(d => {
+  const F = d.F, dup = d.pad !== d.seq;
+  return `<tr class="${dup ? "dup" : ""}">${seqCell(d)}<td class="num">${fmtTime(F.t)}</td>` +
+    `<td class="num sep">${f2(F.mm)}</td><td class="num">${f2(F.sd)}</td>` +
+    `<td class="num sep">${f2(F.fa)}</td><td class="num">${f2(F.ff)}</td>` +
+    `<td class="num sep">${f2(F.sa)}</td><td class="num">${f2(F.sf)}</td></tr>`;
+}).join("");
+</script>

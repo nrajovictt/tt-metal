@@ -1,0 +1,48 @@
+source: generated/profiler/prefill_512_1dev//reports/2026_10_12_19_44_50/ops_perf_results_2026_10_12_19_44_50.csv
+select=trace group=0
+ops: 21   total device kernel time: 3885.8 us
+op-to-op gaps (sum): 13.6 us
+time-weighted FPU util, per-core avg : 54.39 %
+time-weighted FPU util, full grid    : 29.19 %  (fraction of whole-chip peak)
+time-weighted PM (model) FPU util    : 15.58 %
+ops with no FPU counters (no compute kernel): 4
+FPU-busy-equivalent time (full grid) : 1103.1 us
+
+== by op type ==
+                        n  kernel_us  pct_time  fpu_core_avg_tw  fpu_full_grid_tw
+op
+Matmul                3.0    1252.14     32.22            73.89             37.33
+MinimalMatmul         2.0    1156.22     29.75            84.87             48.24
+SDPA                  1.0     634.92     16.34            19.93             10.59
+BinaryNg              3.0     325.81      8.38             0.87              0.78
+LayerNorm             2.0     149.64      3.85             8.39              2.16
+Embeddings            1.0     115.82      2.98             1.09              0.17
+RotaryEmbeddingLlama  2.0      97.61      2.51             5.61              4.40
+NlpCreateHeads        1.0      59.03      1.52              NaN               NaN
+Typecast              3.0      46.75      1.20             0.78              0.65
+PagedFillCache        2.0      25.75      0.66              NaN               NaN
+NLPConcatHeads        1.0      22.12      0.57              NaN               NaN
+
+== per op, execution order ==
+ idx                    label fidelity  cores  kernel_us  pct_time  fpu_core_avg  fpu_full_grid  pm_util
+   0               Embeddings    HiFi4   32.0     115.82      2.98          1.09           0.17     0.00
+   1                LayerNorm    HiFi2   32.0      74.43      1.92          8.45           2.18     0.00
+   2  MinimalMatmul 4096x6144    HiFi2   80.0     359.92      9.26         82.50          54.16     0.00
+   3           NlpCreateHeads           110.0      59.03      1.52           NaN            NaN     0.00
+   4     RotaryEmbeddingLlama    HiFi4  110.0      80.30      2.07          5.47           4.28     0.00
+   5     RotaryEmbeddingLlama    HiFi4  110.0      17.31      0.45          6.26           4.97     0.01
+   6                 Typecast    HiFi4  110.0       8.95      0.23          0.77           0.57     0.01
+   7                 Typecast    HiFi4  110.0       8.66      0.22          0.77           0.58     0.01
+   8           PagedFillCache           110.0      12.70      0.33           NaN            NaN     0.01
+   9           PagedFillCache           110.0      13.06      0.34           NaN            NaN     0.01
+  10                 Typecast    HiFi4  110.0      29.14      0.75          0.79           0.69     0.00
+  11                     SDPA    HiFi4   64.0     634.92     16.34         19.93          10.59    15.29
+  12           NLPConcatHeads           110.0      22.12      0.57           NaN            NaN     0.00
+  13         Matmul 4096x4096    HiFi2   64.0     233.76      6.02         84.74          44.30    48.33
+  14                 BinaryNg    HiFi4  110.0      48.34      1.24          0.50           0.42     0.00
+  15                LayerNorm    HiFi2   32.0      75.22      1.94          8.33           2.15     0.00
+  16        Matmul 4096x14336     LoFi   64.0     508.60     13.09         71.44          35.77    38.87
+  17        Matmul 4096x14336     LoFi   64.0     509.78     13.12         71.37          35.69    38.78
+  18                 BinaryNg    HiFi4  110.0     228.54      5.88          1.02           0.93     0.00
+  19 MinimalMatmul 14336x4096    HiFi2   64.0     796.30     20.49         85.93          45.57     0.00
+  20                 BinaryNg    HiFi4  110.0      48.93      1.26          0.51           0.41     0.00

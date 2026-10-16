@@ -15,6 +15,18 @@ from models.tt_transformers.tt.generator import Generator
 from models.tt_transformers.tt.model_config import DecodersPrecision
 
 
+def get_min_valid_prefill_len(seq_len, prefill_len_cutoff):
+    """
+    Smallest prefill length >= seq_len that the prefill path accepts, without rounding up to the
+    power-of-2 buckets of get_padded_prefill_len. Attention needs a multiple of 128 and, above 1024,
+    a multiple of 1024; the MLP splits rows into blocks of prefill_len_cutoff once it is reached.
+    """
+    if seq_len <= 128:
+        return 128
+    multiple = 128 if seq_len < prefill_len_cutoff else prefill_len_cutoff if seq_len <= 1024 else 1024
+    return -(-seq_len // multiple) * multiple
+
+
 @torch.no_grad()
 @pytest.mark.timeout(900)
 @pytest.mark.models_performance_bare_metal
@@ -46,8 +58,8 @@ from models.tt_transformers.tt.model_config import DecodersPrecision
 )
 @pytest.mark.parametrize(
     "seq_len",
-    (128, 256, 3072, 4096, 8192, 16384, 32768),
-    ids=["128", "256", "3k", "4k", "8k", "16k", "32k"],
+    (128, 256, 512, 1024, 2048, 3072, 4096, 8192, 16384, 32768),
+    ids=["128", "256", "512", "1k", "2k", "3k", "4k", "8k", "16k", "32k"],
 )
 @pytest.mark.parametrize(
     "max_seq_len",
@@ -83,6 +95,7 @@ def test_model_inference(
     is_ci_env,
     request,
     use_prefetcher,
+    monkeypatch,
 ):
     test_id = request.node.callspec.id
     use_hf_rope = request.config.getoption("--use_hf_rope")
@@ -173,6 +186,14 @@ def test_model_inference(
 
     processor = model_args.processor
     tokenizer = model_args.tokenizer
+    if os.environ.get("TT_PREFILL_MIN_PADDING") == "1":
+        # Profiling aid: prefill at the prompt length itself (e.g. 3072 instead of 4096) so per-length
+        # measurements are not repeats of the next power-of-2 bucket. Traces still only exist for the
+        # default bucket lengths, so other lengths run eagerly.
+        monkeypatch.setattr(
+            "models.tt_transformers.tt.generator.get_padded_prefill_len",
+            lambda n: get_min_valid_prefill_len(n, model_args.prefill_len_cutoff),
+        )
     generator = Generator([tt_model], [model_args], mesh_device, processor=processor, tokenizer=tokenizer)
     logger.info("Finished loading TT model.")
 

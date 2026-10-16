@@ -1,0 +1,97 @@
+diff --git a/ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/compute/compute_common.hpp b/ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/compute/compute_common.hpp
+index 0cefb07f88f..919f385255d 100644
+--- a/ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/compute/compute_common.hpp
++++ b/ttnn/cpp/ttnn/operations/transformer/sdpa/device/kernels/compute/compute_common.hpp
+@@ -10,6 +10,7 @@
+ #define REDUCE_DIM (ReduceDim::REDUCE_ROW)
+ 
+ #include "api/debug/assert.h"
++#include "api/debug/kernel_profiler.hpp"
+ #include "api/compute/compute_kernel_api.h"
+ #include "api/compute/binary_max_min.h"
+ #include "api/compute/eltwise_binary_sfpu.h"
+@@ -1787,6 +1788,8 @@ void sdpa_inner_loop(
+              *
+              * matmul_blocks internally waits on both inputs
+              */
++            {
++            DeviceZoneScopedN("SDPA-QK");
+             reconfig_data_format(cb_k_in, cb_q_in);
+             pack_reconfig_data_format(cb_qk_im);
+             matmul_blocks(
+@@ -1802,6 +1805,7 @@ void sdpa_inner_loop(
+                 qk_subblock_h,
+                 qk_subblock_w,
+                 true /*transpose*/);
++            }
+ 
+             /**
+              * Note
+@@ -1854,6 +1858,7 @@ void sdpa_inner_loop(
+             }
+ 
+             if (apply_mask) {
++                DeviceZoneScopedN("SDPA-MASK");
+                 /* QK += MASK */
+                 reconfig_data_format(cb_qk_im, cb_mask_in);
+                 if constexpr (lightweight_mask_enabled) {
+@@ -1928,9 +1933,12 @@ void sdpa_inner_loop(
+              * reduce_tile + binary_max_tile. The overload with cols as a template arg
+              * is bf16-only but cb_qk_im could be fp32.
+              */
++            {
++            DeviceZoneScopedN("SDPA-MAX");
+             reconfig_data_format(cb_qk_im, cb_identity_scale_in);
+             reduce_c<PoolType::MAX, ReduceDim::REDUCE_ROW, cb_qk_im, cb_identity_scale_in, Sq_chunk_t>(
+                 alias_cur_max, alias_prev_max, Sk_chunk_t, processed_k_chunks > 0);
++            }
+ 
+             /**
+              * sub_exp fuses a few operations.
+@@ -1942,9 +1950,14 @@ void sdpa_inner_loop(
+              * Partial reduce_sum is used to push the final row_reduction within a tile
+              * outside of the loop over K chunks.
+              */
++            {
++            DeviceZoneScopedN("SDPA-SUBEXP");
+             sub_exp_block_bcast_cols_inplace<cb_qk_im, Sq_chunk_t, scale_fp32, true>(
+                 alias_cur_max, alias_cur_sum, Sk_chunk_t);
++            }
+ 
++            {
++            DeviceZoneScopedN("SDPA-PV");
+             // Reconfigure unpackers: srcA (context 0) = cb_v_in, srcB (context 1) = cb_qk_im (operands are swapped in
+             // matmul)
+             reconfig_data_format(cb_v_in, cb_qk_im);
+@@ -1966,10 +1979,12 @@ void sdpa_inner_loop(
+                 false /*transpose*/);
+ 
+             cb_qk_im_obj.pop_front(qk_chunk_tiles);
++            }
+             reconfig_data_format(alias_prev_max, alias_cur_max);
+ 
+             /* OUT_ACC += OUT_IM */
+             if (processed_k_chunks > 0) {
++                DeviceZoneScopedN("SDPA-CORR");
+                 /**
+                  * cb_exp_max_diff = torch.exp((cb_prev_max - cb_cur_max) * scale)
+                  * Scale is fused into exp again since max is the max of unscaled scores.
+@@ -2006,7 +2021,10 @@ void sdpa_inner_loop(
+         /**
+          * Performs final row-reduction on the partial sum.
+          */
++        {
++        DeviceZoneScopedN("SDPA-ROWSUM");
+         matmul_reduce<Sq_chunk_t>(cb_col_identity, alias_prev_sum);
++        }
+ 
+         /**
+          * Process attention sink as a virtual K chunk.
+@@ -2118,6 +2136,7 @@ void sdpa_inner_loop(
+                 copy_block(alias_prev_max, cb_lse_out, Sq_chunk_t);
+             }
+         } else {
++            DeviceZoneScopedN("SDPA-NORM");
+             /* cb_cur_sum = 1.0 / cb_cur_sum */
+             recip_block_inplace(alias_prev_sum, Sq_chunk_t);
+ 
